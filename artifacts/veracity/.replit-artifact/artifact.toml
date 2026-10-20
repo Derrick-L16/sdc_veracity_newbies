@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Veracity"
+description = "An inventory exception management app for reviewing stock evidence, recording physical counts, and resolving inventory cases."
+version = "1.0.0"
+id = "artifacts/veracity"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25773
+
+[services.development]
+run = "pnpm --filter @workspace/veracity run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/veracity", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/veracity/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25773"
+BASE_PATH = "/"

@@ -11,6 +11,90 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /backend/session:
+    post:
+      operationId: selectDemoRole
+      summary: Select an existing Veracity demo role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DemoSessionInput" }
+      responses:
+        "200":
+          description: User and HttpOnly session cookie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryPayload" }
+  /backend/state:
+    get:
+      operationId: getInventoryState
+      summary: Get role-filtered products, cases, stock summary and staff progress
+      responses:
+        "200":
+          description: Original Veracity snapshot contract
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryPayload" }
+  /backend/imports:
+    post:
+      operationId: importInventoryRecords
+      summary: Atomically import products or movements as a manager
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryImportInput" }
+      responses:
+        "200":
+          description: Number of records imported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryPayload" }
+  /backend/counts:
+    post:
+      operationId: submitInventoryCount
+      summary: Record a physical count and assess any discrepancy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryCountInput" }
+      responses:
+        "200":
+          description: Case or matched true when no discrepancy exists
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryPayload" }
+  /backend/cases/{id}/decisions:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      operationId: decideInventoryCase
+      summary: Approve, reject, override or request review of the latest assessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InventoryDecisionInput" }
+      responses:
+        "200":
+          description: Updated inventory case
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryPayload" }
+  /backend/cases/{id}/reassess:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      operationId: reassessInventoryCase
+      summary: Assess a case against current source evidence
+      responses:
+        "200":
+          description: Case with a new immutable assessment version
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryPayload" }
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +110,40 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    InventoryPayload:
+      description: Original domain payload; authoritative fields and validation are preserved in the existing Python backend and frontend domain types.
+      type: object
+      additionalProperties: true
+    DemoSessionInput:
+      type: object
+      required: [role]
+      properties:
+        role: { type: string, enum: [staff, manager, owner] }
+    InventoryImportInput:
+      type: object
+      required: [kind, rows]
+      properties:
+        kind: { type: string, enum: [products, movements] }
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 10000
+          items: { $ref: "#/components/schemas/InventoryPayload" }
+    InventoryCountInput:
+      type: object
+      required: [product, recorded, counted]
+      properties:
+        product: { type: string }
+        recorded: { type: integer, minimum: 0, maximum: 1000000000 }
+        counted: { type: integer, minimum: 0, maximum: 1000000000 }
+        note: { type: string }
+    InventoryDecisionInput:
+      type: object
+      required: [action, reason, version]
+      properties:
+        action: { type: string, enum: [approved, rejected, overridden, review] }
+        reason: { type: string, minLength: 1, maxLength: 4000 }
+        version: { type: integer, minimum: 1 }
     HealthStatus:
       type: object
       properties:

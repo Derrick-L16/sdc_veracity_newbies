@@ -1,45 +1,41 @@
-# [Project name]
+# Veracity
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Veracity explains differences between physical stock counts and recorded inventory, supports evidence-based manager decisions, and preserves a read-only Decision Passport for each resolved case.
 
-## Run & Operate
+## Run & operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+Use the managed Replit workflows:
+- `artifacts/veracity: web` — Vite/React frontend at `/`.
+- `artifacts/api-server: API Server` — Express at `/api`; automatically starts and stops the existing Python backend on a private loopback port.
+- The scaffolded mockup sandbox is optional and not needed to run Veracity.
 
-## Stack
+Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+## Source and routes
 
-## Where things live
+- `artifacts/veracity/src/` — preserved imported screens, components, styles and state provider; wouter replaces Next routing.
+- Routes: `/` redirects to `/inbox`; `/inbox/frames`, `/count`, `/account`, `/cases/:id` (including `?v=` assessment versions), `/history`, `/history/:id`.
+- `artifacts/veracity/public/` — original public assets and example CSVs.
+- `artifacts/api-server/backend/` — original Python business logic, SQLite database and backend tests.
+- `artifacts/api-server/src/routes/backend.ts` — replacement for the Next API proxy, preserving `/api/backend/*`, browser-origin checks and HttpOnly session cookies.
+- `lib/api-spec/openapi.yaml` — transport contract. Domain payloads and validation remain owned by the imported backend and frontend domain types.
+- `.migration-backup/` — untouched imported reference, not used at runtime or deployed.
+- `docs/` — imported product and backend documentation; references to Next describe the original architecture, superseded by the paths above.
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+## Persistence and scope decisions
 
-## Architecture decisions
+The migration preserves Python and SQLite rather than replacing the existing database or rewriting inventory reconciliation rules. This minimizes behavioral regressions and retains the original transactional approval, evidence versioning, audit and permission logic. The scaffolded PostgreSQL library is unused by this app.
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+SQLite defaults to `artifacts/api-server/backend/veracity.sqlite3`; the original optional `VERACITY_DB` setting is preserved. Runtime databases, WAL files, test screenshots and traces are excluded from Git and deployment uploads. No database contents were included in the import.
 
-## Product
+This remains the original local MVP: demo sessions allow anyone to choose Staff, Manager or Owner. This is not real authentication. `VERACITY_DEMO_MODE=false` disables demo sessions but does not add authentication. Keep this limitation visible when discussing production use; production authentication and durable hosted database choices are separate work, not part of the preservation-only port.
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+## Tests
 
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- `pnpm test` — 16 original backend tests, including permissions, transactional rollback, duplicate posting prevention, stale evidence and HTTP sessions; uses temporary databases.
+- `pnpm run typecheck` — full workspace check.
+- `pnpm test:e2e` — Playwright against running workflows through `localhost:80`: CSV import, staff count, manager approval, persisted Passport, owner restrictions, direct routes and mobile navigation. Creates uniquely named `Migration test migration-*` inventory records in development; no existing records are altered.
+- Screenshots/traces go to ignored `generated-artifacts/`.
+- Playwright uses the Replit-provided Chromium when present; elsewhere install its browser with `pnpm exec playwright install chromium`.
+- Registered validation commands: `test`, `typecheck`, `app-test`.
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate shared transport helpers after API contract changes. The original frontend state provider intentionally remains in use.

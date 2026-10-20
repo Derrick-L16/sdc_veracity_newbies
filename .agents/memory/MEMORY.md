@@ -1,0 +1,1 @@
+- [Migration preservation](migration-preservation.md) — existing backend and storage must stay intact; root-level Next imports need an explicit copy-script source.
