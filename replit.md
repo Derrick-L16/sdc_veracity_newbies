@@ -1,45 +1,31 @@
-# [Project name]
+# Veracity
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Explainable inventory corrections: import stock records, submit physical counts, review evidence, approve corrections, and retain a Decision Passport.
 
-## Run & Operate
+## Run and test
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+Use the managed workflows (they supply ports and routing):
+- `artifacts/veracity: web` — React + Vite frontend at `/`.
+- `artifacts/api-server: API Server` — Express API at `/api`; starts and supervises the private Python inventory backend automatically.
+- `pnpm --filter @workspace/api-server test` — original Python workflow and HTTP tests with temporary SQLite databases.
+- `pnpm --filter @workspace/veracity test` — browser migration test against the running workflows. Creates uniquely named Migration Test records, not production data. Uses Replit's Chromium when available, otherwise Playwright's installed browser.
+- `pnpm --filter @workspace/veracity run typecheck` — frontend TypeScript check.
+- `pnpm --filter @workspace/api-server run typecheck` — API TypeScript check.
 
-## Stack
+## Imported app preservation
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+The imported source is retained in `.migration-backup/`. Frontend components, visual tokens, assets, and business flows were copied, not redesigned. Next.js routing is replaced with wouter; the original `/api/backend/...` contract is served by Express.
 
-## Where things live
+The existing Python standard-library backend and SQLite storage are intentionally retained. Do not replace this database as part of routine maintenance. Inventory imports, assessments, decision authorization, audit history, and atomic/idempotent posting remain owned by the imported backend.
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+## Storage and publishing limits
 
-## Architecture decisions
+The local database is `artifacts/api-server/backend/veracity.sqlite3`; override with `VERACITY_DB` if using a durable mounted location. SQLite files are excluded from Git and deployment uploads. No imported database file was supplied.
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+This remains the original demo: role selection deliberately permits Staff, Manager, and Owner identities without real authentication. Do not present it as production-authenticated. Before production use, separately plan real authentication and durable storage appropriate to the deployment. An autoscaled filesystem must not be treated as a durable shared SQLite store.
 
-## Product
+No external API credentials or PostgreSQL connection are needed for the imported app. The scaffolded `lib/db` package is not used by its inventory backend.
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+## Source documentation
 
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+`artifacts/veracity/docs/` preserves the original workflow, validation, handoff, and AI-use documents. Their references to Next.js proxy setup are historical; Express now owns that proxy. CSV example files are served from `/examples/`.
