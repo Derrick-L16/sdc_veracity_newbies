@@ -1,0 +1,155 @@
+Summary role:
+
+
+Member / Role
+Final expectation
+1 — Decision Replay & Integration
+Show what changed between assessment versions: new evidence, explained/unexplained quantities and recommendation. Ensure the complete journey works together.
+2 — Backend Reliability
+Prevent duplicate source transactions, record blocked approval attempts and ensure failed or repeated actions never incorrectly change stock.
+3 — AI Integration
+Connect a real AI model to explain existing evidence and suggest checks. Provide a fallback when AI fails; AI must never approve or update stock. 
+4 — Testing & Data
+Prepare reproducible scenarios, test the UI/API and document expected versus actual results. Verify permissions, evidence revisions and duplicate protection. (Check result)
+5 — Replit Deployment & Documentation
+Make startup and prototype access reliable, verify data persistence, and maintain accurate setup instructions and tools declarations. (more on documentation ler)
+
+Today’s shared target: count → investigate → AI explanation → manager approval → one stock correction → saved Decision Passport.
+Five-person task allocation
+Member
+Ownership today
+Main files
+1 — hy
+Assessment comparison and team integration
+artifacts/veracity/src/components/screens/case-detail-view.tsx
+2 — Backend
+Duplicate-source protection and failed-action audit
+artifacts/api-server/backend/server.py
+3 — AI
+Real evidence explanation, validation and fallback
+New backend AI module; integrate with assessment flow
+4 — Testing/data
+Reproducible scenarios and verification
+Backend tests, tests/migration.spec.ts, example CSVs
+5 — Replit/documentation
+Reproducible startup, deployment checks and accurate README
+.replit, replit.md, root README and declaration
+
+Member 1 — hy - make assessment changes understandable
+Your outcome: a user can understand why the recommendation changed.
+Tasks:
+Run the current application and complete one count-to-Passport journey.
+Open case-detail-view.tsx.
+Find latest, viewed and stockCase.versions.
+Add a small “What changed?” section using existing components/styles.
+Compare the selected assessment with the previous one.
+Show newly added evidence IDs.
+Show unexplained units before and after.
+Explain whether the evidence status changed.
+Example:
+Comparison
+Version 1
+Version 2
+Explained units
+3
+7
+Unexplained units
+4
+0
+Evidence status
+Incomplete
+Supported
+
+New evidence: DR004 — Damage, −4 units
+Acceptance check: version 1 still shows its original evidence. The comparison does not change quantities or approval rules.
+What you should be able to explain: “The backend saves assessment versions. My frontend compares those saved versions.”
+Member 2 — backend: prevent misleading inputs and preserve failures
+Your outcome: repeated source records cannot silently strengthen evidence, and blocked decisions are traceable.
+Tasks:
+Add optional source_system and source_transaction_id fields to movement imports.
+When supplied, prevent importing the same source transaction twice—even under different internal IDs.
+Preserve compatibility with the existing example CSVs.
+Add a safe schema migration for existing databases; do not delete teammates’ data.
+Record blocked approval attempts with case ID, actor, time and failure reason.
+Ensure failure logging happens after the stock transaction rolls back, so no partial correction is committed.
+Write tests for duplicate-source imports and blocked-approval logging.
+Document the current stock-baseline assumption: imported movements must not already be included in recorded stock.
+Acceptance check: importing the same source sale twice is rejected; a blocked approval leaves stock unchanged and creates a failure record.
+Scope limit today: document the time/baseline design clearly. Do not rush a larger inventory-synchronisation rewrite.
+Member 3 — AI: explain existing evidence
+Your outcome: the application calls a real model and displays an evidence-grounded explanation.
+First, agree on this small contract with Members 1 and 2:
+Input to AI
+Output from AI
+Quantities, evidence records and existing rule results
+Explanation, evidence IDs, uncertainty and suggested checks
+
+Tasks:
+Confirm the inference approach against the RunPod/GPU rule.
+Keep model credentials in backend secrets.
+Put model-call logic in a separate module.
+Send only the selected case’s evidence and calculated results.
+Request structured output.
+Reject references to evidence IDs absent from the input.
+Save accepted output with its assessment version, model identifier and prompt version.
+Add a timeout and fallback to the existing explanation.
+Add an “AI-assisted explanation” section using the existing UI components.
+Test incomplete evidence and model failure.
+Acceptance check: AI explains the missing four units as unexplained, rather than inventing damage or theft. Disconnecting the model does not stop the rules-based workflow.
+Do not build RAG, model training or an AI chatbot today.
+Member 4 — testing/data: prove the behaviour
+Your outcome: anyone can reproduce the demonstration and see expected versus actual results.
+Prepare isolated test records:
+Scenario
+Input
+Expected result
+Supported
+50 recorded, 43 counted; sales total −7
+Approval allowed; final stock 43
+Incomplete
+Same count; only −3 supported
+Normal approval blocked
+Revised
+Add a −4 damage record to the incomplete case
+New supported version; old version unchanged
+Conflicting
+Relevant records marked disputed
+Normal approval blocked
+Repeated decision
+Approve an already completed case
+No second stock change
+AI unavailable
+Model request fails
+Existing explanation remains usable
+
+Tasks:
+Give scenarios distinct product/source IDs to avoid accidental collisions.
+Run existing backend tests before and after integration.
+Run the browser workflow test against the configured application.
+Check Staff/Owner restrictions through the API, not only disabled buttons.
+Test desktop and mobile layouts.
+Run pnpm audit; report affected packages and proposed fixes.
+Record results in docs/TEST_RESULTS.md: scenario, expected result, actual result and pass/fail.
+Retest changes rather than assuming a fix worked.
+Acceptance check: every failure has a reproducible description and an owner. Do not use audit fix --force without reviewing the dependency changes.
+Member 5 — Replit and documentation: make it reproducible
+Your outcome: another teammate can open and run the same application without relying on undocumented settings.
+Tasks:
+Confirm which workflows currently start the frontend and API.
+Make the application Run workflow start the required services; keep validation workflows separate.
+Verify page requests reach the frontend and /api reaches Express.
+Confirm the Express process starts Python successfully.
+Test the deployed link from a separate browser session.
+Create a case, restart the application and check its history.
+Check published-storage durability; do not assume local SQLite survives deployment changes.
+If storage is not durable, record this as a release blocker and propose the smallest supported solution.
+Write a current root README with startup, test commands, prototype link and known limitations.
+Update the tools declaration with the actual AI work completed today.
+Obtain organiser clarification about runtime AI expectations and declared generated code.
+Acceptance check: another member follows the README successfully. Deployment limitations are documented rather than hidden.
+How to coordinate today
+First 30 minutes: everyone runs the existing flow. Agree on the AI response fields and assign owners.
+Build period: each member works on a separate branch and makes genuine, meaningful commits.
+Before integration: each member explains their change to one teammate and demonstrates their acceptance check.
+Final 60–90 minutes: stop adding features, merge reviewed work and run the complete scenario together.
+Members 2 and 3 both touch the backend. Agree in advance who edits server.py; keep the AI implementation in a separate module to reduce merge conflicts.
