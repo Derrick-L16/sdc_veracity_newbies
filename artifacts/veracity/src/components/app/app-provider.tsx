@@ -1,8 +1,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useLocation } from 'wouter'
+import { roleHome } from '@/lib/role-home'
 import { OPEN_STATUSES, USERS } from '@/lib/data'
-import type { Decision, Product, Role, StockCase, User } from '@/lib/types'
+import type { Decision, DecisionGuard, Product, Role, StockCase, User } from '@/lib/types'
 import type { StockSummary, StaffProgress } from '@/lib/stock'
 
 const EMPTY_SUMMARY: StockSummary = { total: 0, counts: { verified: 0, awaiting: 0, attention: 0, not_counted: 0 }, lastCount: null, missing: { units: 0, value: 0, explained: 0, unexplained: 0, items: [] } }
@@ -13,8 +15,8 @@ interface AppState {
   cases: StockCase[]; products: Product[]; summary: StockSummary; progress: StaffProgress
   loading: boolean; error: string | null; refresh: () => Promise<void>
   inboxCases: StockCase[]; getCase: (id: string) => StockCase | undefined
-  decide: (id: string, action: Decision['action'], reason: string) => Promise<void>
-  requestReview: (id: string, reason: string) => Promise<void>
+  decide: (id: string, action: Decision['action'], reason: string, guard: DecisionGuard) => Promise<void>
+  requestReview: (id: string, reason: string, guard: DecisionGuard) => Promise<void>
   reassess: (id: string) => Promise<void>
   submitCount: (input: { product: string; recorded: number; counted: number; note: string }) => Promise<StockCase | null>
   findOpenCase: (product: string, counted: number) => StockCase | undefined
@@ -27,6 +29,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data
 }
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [, navigate] = useLocation()
   const [snapshot, setSnapshot] = useState<Snapshot>({ user: USERS.manager, cases: [], products: [], summary: EMPTY_SUMMARY, progress: EMPTY_PROGRESS })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,11 +56,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (switching.current) return
     switching.current = true; generation.current++; setLoading(true)
     void (async () => {
-      try { await api('session', { role }); await refresh() }
+      try {
+        const session = await api<{ user: User }>('session', { role })
+        // Once the server changes identity, never retain another role's data,
+        // including if the following state request fails.
+        setSnapshot({ user: session.user, cases: [], products: [], summary: EMPTY_SUMMARY, progress: EMPTY_PROGRESS })
+        setError(null)
+        await refresh()
+        navigate(roleHome(session.user.role), { replace: true })
+      }
       catch (e) { toast.error((e as Error).message) }
       finally { switching.current = false; setLoading(false) }
     })()
-  }, [refresh])
+  }, [refresh, navigate])
   const { cases, products, user, summary, progress } = snapshot
   const role = user.role
   const getCase = useCallback((id: string) => cases.find(c => c.id === id), [cases])
@@ -65,8 +76,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try { const result = await api<StockCase>(path, body); await refresh(); return result }
     catch (e) { void refresh().catch(() => {}); throw e }
   }, [refresh])
-  const decide = useCallback(async (id: string, action: Decision['action'], reason: string) => { await mutate(`cases/${id}/decisions`, { action, reason, version: getCase(id)?.versions.at(-1)?.version }) }, [mutate, getCase])
-  const requestReview = useCallback(async (id: string, reason: string) => { await mutate(`cases/${id}/decisions`, { action: 'review', reason, version: getCase(id)?.versions.at(-1)?.version }) }, [mutate, getCase])
+  const decide = useCallback(async (id: string, action: Decision['action'], reason: string, guard: DecisionGuard) => { await mutate(`cases/${id}/decisions`, { action, reason, ...guard }) }, [mutate])
+  const requestReview = useCallback(async (id: string, reason: string, guard: DecisionGuard) => { await mutate(`cases/${id}/decisions`, { action: 'review', reason, ...guard }) }, [mutate])
   const reassess = useCallback(async (id: string) => { await mutate(`cases/${id}/reassess`, {}) }, [mutate])
   const submitCount = useCallback(async (input: { product: string; recorded: number; counted: number; note: string }) => {
     const result = await api<StockCase | { matched: true }>('counts', input); await refresh(); return 'matched' in result ? null : result

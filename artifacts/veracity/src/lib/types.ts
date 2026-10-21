@@ -36,6 +36,7 @@ export interface RuleResult {
 }
 
 export interface DecisionVersion {
+  attachmentIds?: string[]
   version: number
   createdAt: string
   evidenceState: EvidenceState
@@ -65,6 +66,8 @@ export interface Decision {
 }
 
 export interface StockCase {
+  attachments?: CaseAttachment[]
+  attachmentRevision?: number
   id: string
   product: string
   recorded: number
@@ -76,6 +79,22 @@ export interface StockCase {
   timeline: TimelineEvent[]
   decision?: Decision
   finalStock?: number
+}
+
+export interface CaseAttachment {
+  id: string
+  filename: string
+  contentType: 'image/jpeg' | 'image/png' | 'application/pdf'
+  size: number
+  description: string
+  uploader: string
+  uploadedAt: string
+  revision: number
+}
+
+export interface DecisionGuard {
+  version: number
+  attachmentRevision: number
 }
 
 export interface Product {

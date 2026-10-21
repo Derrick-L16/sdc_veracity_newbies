@@ -9,6 +9,141 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Manager and owner weekly count activity and as-of case backlog in Asia/Kuala_Lumpur
+ */
+export const getWeeklyInventoryReportQueryWeekRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetWeeklyInventoryReportQueryParams = zod.object({
+  "week": zod.coerce.string().regex(getWeeklyInventoryReportQueryWeekRegExp).optional().describe('Monday date, YYYY-MM-DD; defaults to the current week')
+})
+
+export const GetWeeklyInventoryReportResponse = zod.object({
+  "weekStart": zod.string(),
+  "weekEnd": zod.string(),
+  "currentWeek": zod.string(),
+  "timezone": zod.string(),
+  "asOf": zod.string(),
+  "generatedAt": zod.string(),
+  "isFinal": zod.boolean(),
+  "snapshotKind": zod.enum(['live', 'saved']),
+  "totals": zod.object({
+  "countSubmissions": zod.number().int(),
+  "productsCounted": zod.number().int(),
+  "newCases": zod.number().int(),
+  "closedCases": zod.number().int(),
+  "openingBacklog": zod.number().int(),
+  "closingBacklog": zod.number().int(),
+  "overdueCases": zod.number().int()
+}),
+  "decisions": zod.object({
+  "approved": zod.number().int(),
+  "overridden": zod.number().int(),
+  "rejected": zod.number().int()
+}),
+  "daily": zod.array(zod.object({
+  "date": zod.string(),
+  "counts": zod.number().int(),
+  "newCases": zod.number().int(),
+  "closedCases": zod.number().int(),
+  "future": zod.boolean()
+})),
+  "discrepancies": zod.object({
+  "shortageUnits": zod.number().int(),
+  "surplusUnits": zod.number().int()
+}),
+  "followUps": zod.array(zod.object({
+  "id": zod.string(),
+  "product": zod.string(),
+  "status": zod.enum(['pending_approval', 'needs_review', 'manual_review']),
+  "createdAt": zod.string(),
+  "ageDays": zod.number().int(),
+  "recorded": zod.number().int(),
+  "counted": zod.number().int(),
+  "difference": zod.number().int()
+})),
+  "notes": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Authorize an open-case upload using the existing cookie session
+ */
+export const RequestCaseEvidenceUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const requestCaseEvidenceUploadBodyRequestKeyRegExp = new RegExp('^[a-zA-Z0-9-]{16,80}$');
+export const requestCaseEvidenceUploadBodyFilenameMax = 240;
+
+export const requestCaseEvidenceUploadBodySizeMax = 10485760;
+
+export const requestCaseEvidenceUploadBodyDescriptionMax = 1000;
+
+
+
+
+export const RequestCaseEvidenceUploadBody = zod.object({
+  "requestKey": zod.string().regex(requestCaseEvidenceUploadBodyRequestKeyRegExp),
+  "filename": zod.string().min(1).max(requestCaseEvidenceUploadBodyFilenameMax),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'application/pdf']),
+  "size": zod.number().int().min(1).max(requestCaseEvidenceUploadBodySizeMax),
+  "description": zod.string().max(requestCaseEvidenceUploadBodyDescriptionMax).optional(),
+  "version": zod.number().int().min(1)
+})
+
+export const RequestCaseEvidenceUploadResponse = zod.object({
+  "id": zod.string(),
+  "finalized": zod.boolean(),
+  "uploadURL": zod.string().optional()
+})
+
+
+/**
+ * @summary Development-only authenticated file transfer; disabled in cloud mode
+ */
+export const TransferLocalCaseEvidenceParams = zod.object({
+  "id": zod.coerce.string(),
+  "uploadId": zod.coerce.string()
+})
+
+export const TransferLocalCaseEvidenceResponse = zod.void()
+
+
+/**
+ * @summary Verify private staged bytes, preserve an immutable copy and atomically link evidence
+ */
+export const FinalizeCaseEvidenceUploadParams = zod.object({
+  "id": zod.coerce.string(),
+  "uploadId": zod.coerce.string()
+})
+
+export const FinalizeCaseEvidenceUploadResponse = zod.object({
+  "id": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'application/pdf']),
+  "size": zod.number().int(),
+  "description": zod.string(),
+  "uploader": zod.string(),
+  "uploadedAt": zod.string(),
+  "revision": zod.number().int()
+})
+
+
+/**
+ * @summary Serve evidence only after case authorization; never redirect to a public URL
+ */
+
+
+
+export const OpenCaseEvidenceQueryParams = zod.object({
+  "version": zod.number().int().min(1).optional()
+})
+
+export const OpenCaseEvidenceResponse = zod.unknown()
+
+
+/**
  * @summary Select an existing Veracity demo role
  */
 export const SelectDemoRoleBody = zod.object({
@@ -70,12 +205,16 @@ export const DecideInventoryCaseParams = zod.object({
 export const decideInventoryCaseBodyReasonMax = 4000;
 
 
+export const decideInventoryCaseBodyAttachmentRevisionDefault = 0;
+export const decideInventoryCaseBodyAttachmentRevisionMin = 0;
+
 
 
 export const DecideInventoryCaseBody = zod.object({
   "action": zod.enum(['approved', 'rejected', 'overridden', 'review']),
   "reason": zod.string().min(1).max(decideInventoryCaseBodyReasonMax),
-  "version": zod.number().int().min(1)
+  "version": zod.number().int().min(1),
+  "attachmentRevision": zod.number().int().min(decideInventoryCaseBodyAttachmentRevisionMin).default(decideInventoryCaseBodyAttachmentRevisionDefault)
 })
 
 export const DecideInventoryCaseResponse = zod.record(zod.string(), zod.unknown()).describe('Original domain payload; authoritative fields and validation are preserved in the existing Python backend and frontend domain types.')

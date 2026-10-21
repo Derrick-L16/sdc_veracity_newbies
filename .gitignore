@@ -52,3 +52,4 @@ Thumbs.db
 *.sqlite3-shm
 __pycache__/
 /generated-artifacts/
+/.veracity-local/

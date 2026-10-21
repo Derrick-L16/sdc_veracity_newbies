@@ -54,10 +54,11 @@ export default defineConfig({
   server: {
     port,
     strictPort: true,
-    host: '0.0.0.0',
+    host: process.env.VERACITY_LOCAL_DEV === '1' ? '127.0.0.1' : '0.0.0.0',
     allowedHosts: true,
     fs: {
       strict: true,
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.veracity-local/**'],
     },
     proxy: {
       '/api': {

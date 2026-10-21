@@ -6,8 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './caseAttachment';
+export * from './caseAttachmentContentType';
 export * from './demoSessionInput';
 export * from './demoSessionInputRole';
+export * from './evidenceUploadInput';
+export * from './evidenceUploadInputContentType';
+export * from './evidenceUploadTicket';
+export * from './getWeeklyInventoryReportParams';
 export * from './healthStatus';
 export * from './inventoryCountInput';
 export * from './inventoryDecisionInput';
@@ -15,3 +21,12 @@ export * from './inventoryDecisionInputAction';
 export * from './inventoryImportInput';
 export * from './inventoryImportInputKind';
 export * from './inventoryPayload';
+export * from './openCaseEvidenceParams';
+export * from './weeklyInventoryDay';
+export * from './weeklyInventoryDecisions';
+export * from './weeklyInventoryDiscrepancies';
+export * from './weeklyInventoryFollowUp';
+export * from './weeklyInventoryFollowUpStatus';
+export * from './weeklyInventoryReport';
+export * from './weeklyInventoryReportSnapshotKind';
+export * from './weeklyInventoryTotals';

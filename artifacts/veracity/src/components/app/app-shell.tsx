@@ -1,21 +1,27 @@
 
-import { ClipboardList, History, Inbox, ShieldCheck, User } from 'lucide-react'
+import { BarChart3, ClipboardList, History, Inbox, ShieldCheck, User, ListChecks, BookOpenCheck } from 'lucide-react'
 import { Link } from 'wouter'
 import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
 import { useApp } from './app-provider'
 import { RoleSwitcher } from './role-switcher'
+import { roleHome } from '@/lib/role-home'
+import type { Role } from '@/lib/types'
 
-const NAV = [
-  { href: '/count', label: 'Count', icon: ClipboardList },
+const NAV: { href: string; label: string; icon: typeof Inbox; roles?: Role[] }[] = [
+  { href: '/work', label: 'My work', icon: ListChecks, roles: ['staff'] },
+  { href: '/count', label: 'Count', icon: ClipboardList, roles: ['staff', 'manager'] },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/history', label: 'History', icon: History },
+  { href: '/decisions', label: 'Decisions', icon: BookOpenCheck, roles: ['owner'] },
+  { href: '/reports', label: 'Summary', icon: BarChart3, roles: ['manager', 'owner'] },
   { href: '/account', label: 'Account', icon: User },
 ]
 
 function Brand() {
+  const { role } = useApp()
   return (
-    <Link href="/inbox" className="flex items-center gap-3 rounded-[12px]">
+    <Link href={roleHome(role)} aria-label="Veracity home" className="flex items-center gap-3 rounded-[12px]">
       <span className="flex size-10 items-center justify-center rounded-[12px] bg-accent-fill text-white">
         <ShieldCheck className="size-5" aria-hidden="true" />
       </span>
@@ -29,7 +35,8 @@ function Brand() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [pathname] = useLocation()
-  const { inboxCases } = useApp()
+  const { inboxCases, role } = useApp()
+  const nav = NAV.filter((item) => !item.roles || item.roles.includes(role))
   const inboxCount = inboxCases.length
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`) || (href === '/inbox' && pathname.startsWith('/cases'))
 
@@ -45,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col gap-8 border-r border-line bg-surface p-5 md:flex">
         <Brand />
         <nav aria-label="Main" className="flex flex-col gap-1">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const active = isActive(item.href)
             return (
               <Link
@@ -87,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active = isActive(item.href)
           return (
             <Link

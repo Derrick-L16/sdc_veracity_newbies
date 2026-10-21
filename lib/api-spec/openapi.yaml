@@ -11,6 +11,110 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /backend/reports/weekly:
+    get:
+      operationId: getWeeklyInventoryReport
+      summary: Manager and owner weekly count activity and as-of case backlog in Asia/Kuala_Lumpur
+      parameters:
+        - in: query
+          name: week
+          description: Monday date, YYYY-MM-DD; defaults to the current week
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Live current week or historical event reconstruction frozen on first view
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WeeklyInventoryReport" }
+        "400": { description: Invalid Monday or future week }
+        "401": { description: Session required }
+        "403": { description: Manager or owner only }
+  /evidence/cases/{id}/uploads:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    post:
+      operationId: requestCaseEvidenceUpload
+      summary: Authorize an open-case upload using the existing cookie session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvidenceUploadInput" }
+      responses:
+        "200":
+          description: Private staging upload URL; retry key is idempotent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvidenceUploadTicket" }
+        "400": { description: Invalid file metadata }
+        "401": { description: Session required }
+        "403": { description: Role or origin forbidden }
+        "404": { description: Case not accessible }
+        "409": { description: Case closed or assessment changed }
+        "413": { description: File exceeds 10 MB }
+        "503": { description: Storage unavailable }
+  /evidence/cases/{id}/uploads/{uploadId}/bytes:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+      - { in: path, name: uploadId, required: true, schema: { type: string } }
+    put:
+      operationId: transferLocalCaseEvidence
+      summary: Development-only authenticated file transfer; disabled in cloud mode
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, format: binary }
+          image/png:
+            schema: { type: string, format: binary }
+          application/pdf:
+            schema: { type: string, format: binary }
+      responses:
+        "204": { description: Private staged file received }
+        "400": { description: File type or size differs from the authorized upload }
+        "401": { description: Session required }
+        "403": { description: Role or origin forbidden }
+        "404": { description: Local storage disabled or upload inaccessible }
+        "409": { description: Case closed or upload already finalized }
+        "413": { description: File exceeds 10 MB }
+  /evidence/cases/{id}/uploads/{uploadId}/finalize:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+      - { in: path, name: uploadId, required: true, schema: { type: string } }
+    post:
+      operationId: finalizeCaseEvidenceUpload
+      summary: Verify private staged bytes, preserve an immutable copy and atomically link evidence
+      responses:
+        "200":
+          description: Saved attachment, including on duplicate retry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaseAttachment" }
+        "400": { description: Invalid or spoofed file }
+        "401": { description: Session required }
+        "403": { description: Role or origin forbidden }
+        "404": { description: Upload not found for this user }
+        "409": { description: Case closed or assessment changed }
+        "413": { description: Stored file exceeds size limit }
+        "503": { description: Storage unavailable; retry safely }
+  /evidence/cases/{id}/attachments/{attachmentId}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+      - { in: path, name: attachmentId, required: true, schema: { type: string } }
+    get:
+      operationId: openCaseEvidence
+      summary: Serve evidence only after case authorization; never redirect to a public URL
+      parameters:
+        - { in: query, name: version, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Authenticated image preview or PDF download
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { description: Session required }
+        "404": { description: "Case, attachment or historical snapshot not accessible" }
+        "503": { description: Storage unavailable }
   /backend/session:
     post:
       operationId: selectDemoRole
@@ -110,6 +214,104 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    WeeklyInventoryReport:
+      type: object
+      required: [weekStart, weekEnd, currentWeek, timezone, asOf, generatedAt, isFinal, snapshotKind, totals, decisions, daily, discrepancies, followUps, notes]
+      properties:
+        weekStart: { type: string }
+        weekEnd: { type: string }
+        currentWeek: { type: string }
+        timezone: { type: string }
+        asOf: { type: string }
+        generatedAt: { type: string }
+        isFinal: { type: boolean }
+        snapshotKind: { type: string, enum: [live, saved] }
+        totals: { $ref: "#/components/schemas/WeeklyInventoryTotals" }
+        decisions: { $ref: "#/components/schemas/WeeklyInventoryDecisions" }
+        daily:
+          type: array
+          items: { $ref: "#/components/schemas/WeeklyInventoryDay" }
+        discrepancies: { $ref: "#/components/schemas/WeeklyInventoryDiscrepancies" }
+        followUps:
+          type: array
+          items: { $ref: "#/components/schemas/WeeklyInventoryFollowUp" }
+        notes:
+          type: array
+          items: { type: string }
+    WeeklyInventoryTotals:
+      type: object
+      required: [countSubmissions, productsCounted, newCases, closedCases, openingBacklog, closingBacklog, overdueCases]
+      properties:
+        countSubmissions: { type: integer }
+        productsCounted: { type: integer }
+        newCases: { type: integer }
+        closedCases: { type: integer }
+        openingBacklog: { type: integer }
+        closingBacklog: { type: integer }
+        overdueCases: { type: integer }
+    WeeklyInventoryDecisions:
+      type: object
+      required: [approved, overridden, rejected]
+      properties:
+        approved: { type: integer }
+        overridden: { type: integer }
+        rejected: { type: integer }
+    WeeklyInventoryDay:
+      type: object
+      required: [date, counts, newCases, closedCases, future]
+      properties:
+        date: { type: string }
+        counts: { type: integer }
+        newCases: { type: integer }
+        closedCases: { type: integer }
+        future: { type: boolean }
+    WeeklyInventoryDiscrepancies:
+      type: object
+      required: [shortageUnits, surplusUnits]
+      properties:
+        shortageUnits: { type: integer }
+        surplusUnits: { type: integer }
+    WeeklyInventoryFollowUp:
+      type: object
+      required: [id, product, status, createdAt, ageDays, recorded, counted, difference]
+      properties:
+        id: { type: string }
+        product: { type: string }
+        status: { type: string, enum: [pending_approval, needs_review, manual_review] }
+        createdAt: { type: string }
+        ageDays: { type: integer }
+        recorded: { type: integer }
+        counted: { type: integer }
+        difference: { type: integer }
+    EvidenceUploadInput:
+      type: object
+      required: [requestKey, filename, contentType, size, version]
+      properties:
+        requestKey: { type: string, pattern: "^[a-zA-Z0-9-]{16,80}$" }
+        filename: { type: string, minLength: 1, maxLength: 240 }
+        contentType: { type: string, enum: [image/jpeg, image/png, application/pdf] }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+        description: { type: string, maxLength: 1000 }
+        version: { type: integer, minimum: 1 }
+    EvidenceUploadTicket:
+      type: object
+      required: [id, finalized]
+      properties:
+        id: { type: string }
+        finalized: { type: boolean }
+        uploadURL: { type: string }
+    CaseAttachment:
+      type: object
+      required: [id, filename, contentType, size, description, uploader, uploadedAt, revision]
+      properties:
+        id: { type: string }
+        filename: { type: string }
+        contentType: { type: string, enum: [image/jpeg, image/png, application/pdf] }
+        size: { type: integer }
+        description: { type: string }
+        uploader: { type: string }
+        uploadedAt: { type: string }
+        revision: { type: integer }
     InventoryPayload:
       description: Original domain payload; authoritative fields and validation are preserved in the existing Python backend and frontend domain types.
       type: object
@@ -144,6 +346,7 @@ components:
         action: { type: string, enum: [approved, rejected, overridden, review] }
         reason: { type: string, minLength: 1, maxLength: 4000 }
         version: { type: integer, minimum: 1 }
+        attachmentRevision: { type: integer, minimum: 0, default: 0 }
     HealthStatus:
       type: object
       properties:

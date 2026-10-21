@@ -7,6 +7,9 @@ import json
 import os
 import secrets
 import sqlite3
+import sys
+import attachments
+import reports
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -37,6 +40,8 @@ def init():
         CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,at TEXT NOT NULL,actor TEXT NOT NULL,action TEXT NOT NULL,case_id TEXT,detail TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS ledger(id INTEGER PRIMARY KEY,case_id TEXT UNIQUE NOT NULL,product_id TEXT NOT NULL,before_qty INTEGER NOT NULL,after_qty INTEGER NOT NULL,detail TEXT NOT NULL);
         ''')
+        attachments.init(db)
+        reports.init(db)
 
 def audit(db,user,action,cid,detail): db.execute('INSERT INTO audit(at,actor,action,case_id,detail) VALUES(?,?,?,?,?)',(now(),user['name'],action,cid,dump(detail)))
 def integer(value, label, minimum=0):
@@ -80,6 +85,7 @@ def assess(db,c):
       'evidence':[{'id':r['id'],'type':r['kind'],'quantity':r['quantity'],'stockStatus':'Unposted at assessment time','match':'conflicting' if r['conflict_ref'] else 'matched' if supported else 'unmatched','isNew':bool(previous) and r['id'] not in old_ids} for r in rows],
       'rules':[{'id':a,'name':b,'passed':d,'detail':e} for a,b,d,e in checks],
       'impact':[f'Post {len(rows)} outstanding records once',f'Update stock from {c["recorded"]} to {c["counted"]}','No additional independent stock adjustment'] if supported else ['Keep stock unchanged pending investigation or explicit manager override'],
+      'attachmentIds':[a['id'] for a in c.get('attachments',[])],
       'sourceSnapshot':rows,'sourceHash':hashlib.sha256(dump(rows).encode()).hexdigest()}
 
 def add_assessment(db,c):
@@ -113,6 +119,7 @@ def decision(db,user,c,b):
     require(user,('manager',)); pending(c)
     v=c['versions'][-1]
     if b.get('version')!=v['version']: raise APIError('Assessment changed. Review the latest version.',409)
+    if b.get('attachmentRevision',0)!=c.get('attachmentRevision',0): raise APIError('Documents changed. Refresh the case and review all attachments before deciding.',409)
     reason=text(b.get('reason'),'Decision reason'); action=b.get('action')
     if action not in ('approved','rejected','overridden','review'): raise APIError('Unknown decision action.')
     if action=='review':
@@ -134,7 +141,7 @@ def decision(db,user,c,b):
         db.execute('UPDATE products SET recorded=?,revision=revision+1 WHERE id=?',(c['counted'],c['productId']))
         db.execute('INSERT INTO ledger(case_id,product_id,before_qty,after_qty,detail) VALUES(?,?,?,?,?)',(c['id'],c['productId'],c['recorded'],c['counted'],dump({'action':action,'sourceIds':[r['id'] for r in v['sourceSnapshot']] if action=='approved' else [],'reason':reason})))
     c['status']='rejected' if action=='rejected' else 'completed'; c['finalStock']=p['recorded'] if action=='rejected' else c['counted']
-    c['decision']={'action':action,'by':user['name'],'role':user['role'],'reason':reason,'at':now(),'assessmentVersion':v['version']}
+    c['decision']={'action':action,'by':user['name'],'role':user['role'],'reason':reason,'at':now(),'assessmentVersion':v['version'],'attachmentRevision':c.get('attachmentRevision',0),'attachmentIds':[a['id'] for a in c.get('attachments',[])]}
     c['timeline'] += [{'stage':'approval','summary':f'{action} by {user["name"]}: {reason}','at':now(),'actor':user['name']},{'stage':'outcome','summary':f'Stock {c["recorded"]} → {c["finalStock"]}. '+('No stock mutation.' if action=='rejected' else 'One atomic reconciliation recorded.'),'at':now(),'actor':'Veracity'}]
     save(db,c); audit(db,user,action,c['id'],c['decision']); return c
 
@@ -201,7 +208,8 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(b,dict): raise APIError('Expected JSON object.')
             path=self.path.split('?')[0].strip('/').split('/')
             with connect() as db:
-                db.execute('BEGIN IMMEDIATE' if self.command=='POST' else 'BEGIN')
+                reporting = self.command=='GET' and path==['reports','weekly']
+                db.execute('BEGIN IMMEDIATE' if self.command=='POST' or reporting else 'BEGIN')
                 if path==['health'] and self.command=='GET': self.respond(200,{'ok':True});return
                 if path==['session'] and self.command=='POST':
                     role=b.get('role','manager')
@@ -213,7 +221,17 @@ class Handler(BaseHTTPRequestHandler):
                 session=db.execute('SELECT role FROM sessions WHERE token=? AND expires>?',(token,time.time())).fetchone()
                 if not session: raise APIError('Session expired. Select your demo role again.',401)
                 user=USERS[session['role']]
-                if self.command=='GET' and path==['state']: result=state(db,user)
+                if path[0]=='evidence':
+                    bridge=os.environ.get('VERACITY_EVIDENCE_BRIDGE','')
+                    if not bridge or not secrets.compare_digest(self.headers.get('X-Evidence-Bridge',''),bridge): raise APIError('Private evidence endpoint.',403)
+                    result=attachments.route(db,user,path,self.command,b,sys.modules[__name__])
+                elif self.command=='GET' and path==['state']: result=state(db,user)
+                elif reporting:
+                    from urllib.parse import parse_qs, urlsplit
+                    query=parse_qs(urlsplit(self.path).query,keep_blank_values=True)
+                    if set(query)-{'week'} or len(query.get('week',[]))>1:
+                        raise APIError('Expected a single optional week parameter.')
+                    result=reports.weekly(db,user,query.get('week',[None])[0],sys.modules[__name__])
                 elif self.command=='POST' and path==['counts']:result=create_count(db,user,b)
                 elif self.command=='POST' and path==['imports']:result=import_rows(db,user,b)
                 elif len(path)>=2 and path[0]=='cases':
