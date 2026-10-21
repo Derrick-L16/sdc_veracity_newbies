@@ -3,7 +3,16 @@ const API = '/api/evidence/cases'
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, { method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) })
-  const data = await response.json()
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error('The evidence API returned a page instead of upload data. Refresh and retry. If this continues, the app server needs restarting or the latest version needs republishing. Your file has not been confirmed as saved.')
+  }
+  let data: { error?: string }
+  try {
+    data = await response.json()
+  } catch {
+    throw new Error('The evidence API returned an invalid response. Retry with the same file; this will not create a duplicate attachment.')
+  }
   if (!response.ok) throw new Error(data.error || 'Upload failed. Retry with the same file.')
   return data as T
 }
