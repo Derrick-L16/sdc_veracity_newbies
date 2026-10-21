@@ -3,3 +3,4 @@
 - [Stale preview services](stale-preview-services.md) — a healthy API response can come from an older process when managed workflows fail on occupied ports.
 - [Weekly reporting goal](weekly-reporting-goal.md) — manager summaries should explain weekly inventory work; the user chose a small real-data dashboard over a disposable mockup.
 - [Role responsibilities](role-responsibilities.md) — restaurant/SME hierarchy means delegated duties, not inherited Owner mutation privileges.
+- [Merge state rechecks](merge-state-rechecks.md) — pending merge/index state has changed between turns; verify current state again before acting on approval.

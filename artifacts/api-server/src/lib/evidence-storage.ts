@@ -2,6 +2,9 @@ import { Storage, type File } from "@google-cloud/storage";
 import sharp from "sharp";
 import { PDFDocument } from "pdf-lib";
 import { createHash } from "node:crypto";
+import { EvidenceError } from "./evidence-error.ts";
+import { localEvidenceEnabled, localBytes, localExists, saveLocalBytes, removeLocalStaging } from "./local-evidence-storage.ts";
+export { EvidenceError } from "./evidence-error.ts";
 
 // Replit sidecar authentication, identical to the App Storage service template.
 const sidecar = "http://127.0.0.1:1106";
@@ -20,10 +23,6 @@ const storage = new Storage({
   projectId: "",
 });
 
-export class EvidenceError extends Error {
-  public status: number;
-  constructor(message: string, status = 400) { super(message); this.status = status; }
-}
 export const MAX_SIZE = 10 * 1024 * 1024;
 export interface UploadTicket {
   id: string; stagingKey: string; objectKey: string; size: number;
@@ -87,6 +86,18 @@ export async function verifyBytes(bytes: Buffer, contentType: string) {
 }
 
 export async function verifyAndPreserve(ticket: UploadTicket): Promise<string> {
+  if (localEvidenceEnabled()) {
+    const exists = await localExists(ticket.objectKey);
+    const bytes = await localBytes(exists ? ticket.objectKey : ticket.stagingKey, MAX_SIZE);
+    if (bytes.length !== ticket.size) throw new EvidenceError("Incomplete upload. Retry the original file.", 413);
+    await verifyBytes(bytes, ticket.contentType);
+    if (!exists) {
+      await saveLocalBytes(ticket.objectKey, bytes, true);
+      // Hash the actual winning immutable file if another finalize ran concurrently.
+      return verifyAndPreserve(ticket);
+    }
+    return createHash("sha256").update(bytes).digest("hex");
+  }
   const final = evidenceFile(ticket.objectKey);
   const staged = evidenceFile(ticket.stagingKey);
   // A retry after a lost response must reuse the already-preserved immutable object.
@@ -117,5 +128,6 @@ export async function verifyAndPreserve(ticket: UploadTicket): Promise<string> {
 }
 
 export async function removeStaging(ticket: UploadTicket) {
+  if (localEvidenceEnabled()) { await removeLocalStaging(ticket.stagingKey); return; }
   await evidenceFile(ticket.stagingKey).delete({ ignoreNotFound: true });
 }

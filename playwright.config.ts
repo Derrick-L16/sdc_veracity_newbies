@@ -11,7 +11,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     actionTimeout: 10000,
-    baseURL: "http://localhost:80",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:80",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     launchOptions: systemChromium ? { executablePath: systemChromium, args: ["--no-sandbox"] } : undefined,

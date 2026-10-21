@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "local": "node local-dev/start.mjs",
+    "local:frontend": "node local-dev/frontend.mjs",
+    "local:backend": "node local-dev/backend.mjs",
     "test": "pnpm --filter @workspace/api-server test",
     "test:e2e": "playwright test",
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",

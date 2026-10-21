@@ -1,6 +1,7 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, raw, type IRouter, type Request } from "express";
 import { getBackendUrl, evidenceBridge } from "../lib/python-backend";
-import { EvidenceError, evidenceFile, removeStaging, uploadURL, verifyAndPreserve, type UploadTicket } from "../lib/evidence-storage";
+import { EvidenceError, MAX_SIZE, evidenceFile, removeStaging, uploadURL, verifyAndPreserve, type UploadTicket } from "../lib/evidence-storage";
+import { localEvidenceEnabled, saveLocalBytes, localMetadata, localReadStream } from "../lib/local-evidence-storage";
 import { RequestCaseEvidenceUploadBody, RequestCaseEvidenceUploadResponse, FinalizeCaseEvidenceUploadResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -22,7 +23,7 @@ router.use("/evidence", (req, res, next) => {
   if (segments.some(p => !/^[a-zA-Z0-9_-]+$/.test(p))) {
     res.status(400).json({ error: "Invalid evidence path." }); return;
   }
-  if (req.method === "POST") {
+  if (req.method === "POST" || req.method === "PUT") {
     const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
     const protocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim() || req.protocol;
     if (req.get("origin") !== (process.env.APP_ORIGIN || `${protocol}://${host}`)) {
@@ -43,10 +44,37 @@ router.post("/evidence/cases/:id/uploads", async (req, res): Promise<void> => {
     const current = await domain<UploadTicket>(req, `${req.params.id}/uploads/${ticket.id}`);
     res.json(RequestCaseEvidenceUploadResponse.parse({
       id: ticket.id, finalized: !!current.finalized,
-      ...(!current.finalized && { uploadURL: await uploadURL(ticket) }),
+      ...(!current.finalized && { uploadURL: localEvidenceEnabled()
+        ? `/api/evidence/cases/${encodeURIComponent(String(req.params.id))}/uploads/${ticket.id}/bytes`
+        : await uploadURL(ticket) }),
     }));
   } catch (error) { failure(res, error); }
 });
+
+// Local development only. The browser's existing session and origin are required,
+// and Python rechecks case ownership, open status, version and ticket ownership.
+router.put("/evidence/cases/:id/uploads/:uploadId/bytes",
+  async (req, res, next): Promise<void> => {
+    try {
+      if (!localEvidenceEnabled()) throw new EvidenceError("Local uploads are disabled.", 404);
+      const ticket = await domain<UploadTicket>(req, `${req.params.id}/uploads/${req.params.uploadId}`);
+      if (ticket.finalized) throw new EvidenceError("This upload is already finalized.", 409);
+      res.locals.ticket = ticket;
+      next();
+    } catch (error) { failure(res, error); }
+  },
+  raw({ type: ["image/jpeg", "image/png", "application/pdf"], limit: MAX_SIZE }),
+  async (req, res): Promise<void> => {
+    try {
+      const ticket = res.locals.ticket as UploadTicket;
+      if (req.get("content-type")?.split(";")[0] !== ticket.contentType ||
+          !Buffer.isBuffer(req.body) || req.body.length !== ticket.size) {
+        throw new EvidenceError("Uploaded bytes do not match the selected file type or size.", 400);
+      }
+      await saveLocalBytes(ticket.stagingKey, req.body);
+      res.status(204).end();
+    } catch (error) { failure(res, error); }
+  });
 
 router.post("/evidence/cases/:id/uploads/:uploadId/finalize", async (req, res): Promise<void> => {
   try {
@@ -66,9 +94,11 @@ router.get("/evidence/cases/:id/attachments/:attachmentId", async (req, res): Pr
     if (version !== undefined && (!Number.isInteger(version) || version < 1)) throw new EvidenceError("Invalid assessment version.");
     const attachment = await domain<{ objectKey: string; contentType: string; filename: string; size: number }>(
       req, `${req.params.id}/attachments/${req.params.attachmentId}`, { version });
-    const file = evidenceFile(attachment.objectKey);
+    const local = localEvidenceEnabled();
+    const file = local ? undefined : evidenceFile(attachment.objectKey);
     // Authorize first, including closed cases and historical snapshot membership.
-    await file.getMetadata();
+    if (local) await localMetadata(attachment.objectKey);
+    else await file!.getMetadata();
     res.set({
       "Content-Type": attachment.contentType,
       "Content-Disposition": `${attachment.contentType === "application/pdf" ? "attachment" : "inline"}; filename="${attachment.filename}"`,
@@ -76,10 +106,16 @@ router.get("/evidence/cases/:id/attachments/:attachmentId", async (req, res): Pr
       "Content-Security-Policy": "sandbox; default-src 'none'",
       "Content-Length": String(attachment.size),
     });
-    const stream = file.createReadStream();
+    const stream = local ? localReadStream(attachment.objectKey) : file!.createReadStream();
     stream.on("error", () => { if (!res.headersSent) failure(res, new EvidenceError("File temporarily unavailable. Please retry.", 503)); else res.destroy(); });
     stream.pipe(res);
   } catch (error) { failure(res, error); }
+});
+
+router.use((error: unknown, _req: Request, res: import("express").Response, _next: import("express").NextFunction) => {
+  if ((error as { type?: string }).type === "entity.too.large") {
+    failure(res, new EvidenceError("File exceeds 10 MB. Choose a smaller file.", 413));
+  } else failure(res, error);
 });
 
 function failure(res: import("express").Response, error: unknown) {

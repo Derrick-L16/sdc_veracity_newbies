@@ -53,6 +53,30 @@ paths:
         "409": { description: Case closed or assessment changed }
         "413": { description: File exceeds 10 MB }
         "503": { description: Storage unavailable }
+  /evidence/cases/{id}/uploads/{uploadId}/bytes:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+      - { in: path, name: uploadId, required: true, schema: { type: string } }
+    put:
+      operationId: transferLocalCaseEvidence
+      summary: Development-only authenticated file transfer; disabled in cloud mode
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, format: binary }
+          image/png:
+            schema: { type: string, format: binary }
+          application/pdf:
+            schema: { type: string, format: binary }
+      responses:
+        "204": { description: Private staged file received }
+        "400": { description: File type or size differs from the authorized upload }
+        "401": { description: Session required }
+        "403": { description: Role or origin forbidden }
+        "404": { description: Local storage disabled or upload inaccessible }
+        "409": { description: Case closed or upload already finalized }
+        "413": { description: File exceeds 10 MB }
   /evidence/cases/{id}/uploads/{uploadId}/finalize:
     parameters:
       - { in: path, name: id, required: true, schema: { type: string } }

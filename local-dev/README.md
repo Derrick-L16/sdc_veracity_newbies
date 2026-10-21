@@ -1,56 +1,37 @@
 # Run Veracity locally (VS Code)
 
-Replit runs the app through its own workflows (see `replit.md`). This folder lets you
-run the same code on your own computer with two terminals. It does not change any
-Replit file.
+See the root [README](../README.md) for complete setup and troubleshooting.
+Existing frontend/backend directories are unchanged.
 
-## Requirements
+Requires Node.js **24 LTS**, pnpm **10**, and Python **3.10+**.
+Use Git Bash on Windows for installation.
 
-- Node.js 20+
-- pnpm 10 (same as Replit): `npm install -g pnpm@10`
-- Python 3.10+
-- Windows: use **Git Bash** terminals (VS Code terminal dropdown → Git Bash).
-  `pnpm install` runs a `sh` script that PowerShell cannot run.
+From the repository root:
 
-## First time
-
-```
+```bash
 pnpm install
+pnpm local
 ```
 
-## Terminal 1: backend
+Or use two terminals:
 
-```
-python artifacts/api-server/backend/server.py
-```
+```bash
+# Terminal 1
+node local-dev/backend.mjs
 
-(macOS/Linux: `python3`.) Wait for `Veracity API listening on http://127.0.0.1:8000`.
-
-## Terminal 2: frontend
-
-```
+# Terminal 2
 node local-dev/frontend.mjs
 ```
 
-Open http://localhost:5173. Press `Ctrl+C` in each terminal to stop.
+Wait for the API to report **Server listening**, then open **http://localhost:3000**.
+Stop with Ctrl+C. Do not start Python separately: Express starts it automatically.
+The old Python-only proxy cannot handle evidence uploads.
 
-The first run also installs Windows/macOS build tool binaries into
-`local-dev/.native/` (ignored by git), because `pnpm-workspace.yaml` only keeps the
-Linux ones that Replit needs.
+Windows/macOS support is preserved: missing matching build-tool binaries are
+installed into ignored `local-dev/.native/` using npm, without replacing workspace
+dependencies or the pnpm lockfile. Initial setup may need network access.
 
-## Demo data
-
-The database starts empty. As **Manager**, go to Account → Connected records and
-import, once each and in this order:
-
-1. Inventory products → `artifacts/veracity/public/examples/products.csv`
-2. Unposted stock movements → `artifacts/veracity/public/examples/movements.csv`
-
-Importing the same file twice fails with "Duplicate ID". To reset, stop the backend
-and delete `artifacts/api-server/backend/veracity.sqlite3*`.
-
-## Differences from Replit
-
-Locally the frontend talks to the Python backend directly. On Replit an Express API
-server sits in between and also handles case document uploads (PDF/PNG) through
-Replit App Storage, so uploads do not work locally. Everything else does.
+Local inventory and evidence persist in ignored `.veracity-local/`, separate from
+Replit and any old Python-only database. Import samples through Account →
+Connected records. Do not delete teammates' databases.
+Replit continues using App Storage; local disk storage is development-only.

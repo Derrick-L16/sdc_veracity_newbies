@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react'
-import { Paperclip, Upload } from 'lucide-react'
+import { FileText, Image, Paperclip, Upload, X } from 'lucide-react'
 import { useApp } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from './primitives'
@@ -67,11 +67,37 @@ export function CaseAttachments({ stockCase, viewed, historical = false, readOnl
         })}
       </ul> : <p className="text-body-sm text-fg-secondary">{historical ? 'No documents were available at this assessment.' : 'No documents uploaded yet.'}</p>}
       {canUpload ? <form onSubmit={submit} className="flex flex-col gap-3 border-t border-line pt-4" aria-label="Add case documents">
-        <label htmlFor={`${fieldId}-file`} className="text-body-sm font-medium">Evidence file</label>
+        <label htmlFor={`${fieldId}-file`} className="sr-only">Evidence file</label>
         <input ref={input} id={`${fieldId}-file`} type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" disabled={busy}
           aria-describedby={`${fieldId}-help`} onChange={e => { setFile(e.target.files?.[0] ?? null); newAttempt() }}
-          className="min-h-11 max-w-full rounded-lg border border-line p-2 text-body-sm" />
-        <p id={`${fieldId}-help`} className="text-caption text-fg-secondary">JPEG, PNG or PDF · Up to 10 MB per file</p>
+          tabIndex={-1} className="sr-only" />
+        <div className="flex min-w-0 flex-col gap-4 rounded-[12px] border border-dashed border-line bg-elevated/40 p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-fill/10 text-accent-text">
+              <Upload className="size-5" aria-hidden="true" />
+            </span>
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="text-body-sm font-medium">Add supporting evidence</p>
+              <p id={`${fieldId}-help`} className="text-caption text-fg-secondary">Select a receipt, damage photo, or report.<br />JPG, PNG or PDF · Up to 10 MB</p>
+            </div>
+          </div>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => input.current?.click()}
+            aria-describedby={`${fieldId}-help`} className="self-start">
+            <Paperclip aria-hidden="true" />{file ? 'Change file' : 'Select photo or PDF'}
+          </Button>
+          {file && <div role="status" className="flex min-w-0 items-center gap-3 rounded-lg border border-line bg-elevated p-3">
+            {file.type === 'application/pdf' ? <FileText className="size-5 shrink-0 text-accent-text" aria-hidden="true" /> : <Image className="size-5 shrink-0 text-accent-text" aria-hidden="true" />}
+            <div className="min-w-0 flex-1">
+              <p className="break-all text-body-sm font-medium">{file.name}</p>
+              <p className="text-caption text-fg-secondary">{file.size < 1024 * 1024 ? `${Math.max(1, Math.ceil(file.size / 1024))} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`} · Ready to upload</p>
+            </div>
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove selected file" disabled={busy} onClick={() => {
+              setFile(null)
+              if (input.current) input.current.value = ''
+              newAttempt()
+            }}><X aria-hidden="true" /></Button>
+          </div>}
+        </div>
         <label htmlFor={`${fieldId}-description`} className="text-body-sm font-medium">Description (optional)</label>
         <textarea id={`${fieldId}-description`} value={description} maxLength={1000} disabled={busy} rows={2}
           onChange={e => { setDescription(e.target.value); newAttempt() }} className="rounded-lg border border-line bg-elevated p-3 text-body-sm" />
