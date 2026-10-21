@@ -4,3 +4,4 @@
 - [Weekly reporting goal](weekly-reporting-goal.md) — manager summaries should explain weekly inventory work; the user chose a small real-data dashboard over a disposable mockup.
 - [Role responsibilities](role-responsibilities.md) — restaurant/SME hierarchy means delegated duties, not inherited Owner mutation privileges.
 - [Merge state rechecks](merge-state-rechecks.md) — pending merge/index state has changed between turns; verify current state again before acting on approval.
+- [Product scope](product-scope.md) — AI is a future feature, not part of the current implementation or testing acceptance.
