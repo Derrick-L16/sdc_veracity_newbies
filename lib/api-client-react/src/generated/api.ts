@@ -20,12 +20,16 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CaseAttachment,
   DemoSessionInput,
+  EvidenceUploadInput,
+  EvidenceUploadTicket,
   HealthStatus,
   InventoryCountInput,
   InventoryDecisionInput,
   InventoryImportInput,
-  InventoryPayload
+  InventoryPayload,
+  OpenCaseEvidenceParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -54,6 +58,265 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getRequestCaseEvidenceUploadUrl = (id: string,) => {
+
+
+
+
+  return `/api/evidence/cases/${id}/uploads`
+}
+
+/**
+ * @summary Authorize an open-case upload using the existing cookie session
+ */
+export const requestCaseEvidenceUpload = async (id: string,
+    evidenceUploadInput: EvidenceUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<EvidenceUploadTicket> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EvidenceUploadTicket>(getRequestCaseEvidenceUploadUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(evidenceUploadInput)
+  }
+);}
+
+
+
+
+
+export const getRequestCaseEvidenceUploadMutationKey = () => ['requestCaseEvidenceUpload'] as const;
+
+export const getRequestCaseEvidenceUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestCaseEvidenceUpload>>, TError,RequestCaseEvidenceUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestCaseEvidenceUpload>>, TError,RequestCaseEvidenceUploadMutationVariables, TContext> => {
+
+const mutationKey = getRequestCaseEvidenceUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestCaseEvidenceUpload>>, RequestCaseEvidenceUploadMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  requestCaseEvidenceUpload(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestCaseEvidenceUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestCaseEvidenceUpload>>>
+    export type RequestCaseEvidenceUploadMutationBody = BodyType<EvidenceUploadInput>
+    export type RequestCaseEvidenceUploadMutationError = ErrorType<void>
+    export type RequestCaseEvidenceUploadMutationVariables = {id: string;data: BodyType<EvidenceUploadInput>}
+
+    /**
+ * @summary Authorize an open-case upload using the existing cookie session
+ */
+export const useRequestCaseEvidenceUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestCaseEvidenceUpload>>, TError,RequestCaseEvidenceUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestCaseEvidenceUpload>>,
+        TError,
+        RequestCaseEvidenceUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestCaseEvidenceUploadMutationOptions(options));
+    }
+
+export const getFinalizeCaseEvidenceUploadUrl = (id: string,
+    uploadId: string,) => {
+
+
+
+
+  return `/api/evidence/cases/${id}/uploads/${uploadId}/finalize`
+}
+
+/**
+ * @summary Verify private staged bytes, preserve an immutable copy and atomically link evidence
+ */
+export const finalizeCaseEvidenceUpload = async (id: string,
+    uploadId: string, options?: Parameters<typeof customFetch>[1]): Promise<CaseAttachment> => {
+
+  return customFetch<CaseAttachment>(getFinalizeCaseEvidenceUploadUrl(id,uploadId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getFinalizeCaseEvidenceUploadMutationKey = () => ['finalizeCaseEvidenceUpload'] as const;
+
+export const getFinalizeCaseEvidenceUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeCaseEvidenceUpload>>, TError,FinalizeCaseEvidenceUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof finalizeCaseEvidenceUpload>>, TError,FinalizeCaseEvidenceUploadMutationVariables, TContext> => {
+
+const mutationKey = getFinalizeCaseEvidenceUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finalizeCaseEvidenceUpload>>, FinalizeCaseEvidenceUploadMutationVariables> = (props) => {
+          const {id,uploadId} = props ?? {};
+
+          return  finalizeCaseEvidenceUpload(id,uploadId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinalizeCaseEvidenceUploadMutationResult = NonNullable<Awaited<ReturnType<typeof finalizeCaseEvidenceUpload>>>
+
+    export type FinalizeCaseEvidenceUploadMutationError = ErrorType<void>
+    export type FinalizeCaseEvidenceUploadMutationVariables = {id: string;uploadId: string}
+
+    /**
+ * @summary Verify private staged bytes, preserve an immutable copy and atomically link evidence
+ */
+export const useFinalizeCaseEvidenceUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeCaseEvidenceUpload>>, TError,FinalizeCaseEvidenceUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof finalizeCaseEvidenceUpload>>,
+        TError,
+        FinalizeCaseEvidenceUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFinalizeCaseEvidenceUploadMutationOptions(options));
+    }
+
+export const getOpenCaseEvidenceUrl = (id: string,
+    attachmentId: string,
+    params?: OpenCaseEvidenceParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/evidence/cases/${id}/attachments/${attachmentId}?${stringifiedParams}` : `/api/evidence/cases/${id}/attachments/${attachmentId}`
+}
+
+/**
+ * @summary Serve evidence only after case authorization; never redirect to a public URL
+ */
+export const openCaseEvidence = async (id: string,
+    attachmentId: string,
+    params?: OpenCaseEvidenceParams, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getOpenCaseEvidenceUrl(id,attachmentId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getOpenCaseEvidenceQueryKey = (id: string,
+    attachmentId: string,
+    params?: OpenCaseEvidenceParams,) => {
+    return [
+    `/api/evidence/cases/${id}/attachments/${attachmentId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getOpenCaseEvidenceQueryOptions = <TData = Awaited<ReturnType<typeof openCaseEvidence>>, TError = ErrorType<void>>(id: string,
+    attachmentId: string,
+    params?: OpenCaseEvidenceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof openCaseEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getOpenCaseEvidenceQueryKey(id,attachmentId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof openCaseEvidence>>> = ({ signal }) => openCaseEvidence(id,attachmentId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && attachmentId !== null && attachmentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof openCaseEvidence>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type OpenCaseEvidenceQueryResult = NonNullable<Awaited<ReturnType<typeof openCaseEvidence>>>
+export type OpenCaseEvidenceQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve evidence only after case authorization; never redirect to a public URL
+ */
+
+export function useOpenCaseEvidence<TData = Awaited<ReturnType<typeof openCaseEvidence>>, TError = ErrorType<void>>(
+ id: string,
+    attachmentId: string,
+    params?: OpenCaseEvidenceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof openCaseEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getOpenCaseEvidenceQueryOptions(id,attachmentId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getSelectDemoRoleUrl = () => {
 

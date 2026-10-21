@@ -6,8 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './caseAttachment';
+export * from './caseAttachmentContentType';
 export * from './demoSessionInput';
 export * from './demoSessionInputRole';
+export * from './evidenceUploadInput';
+export * from './evidenceUploadInputContentType';
+export * from './evidenceUploadTicket';
 export * from './healthStatus';
 export * from './inventoryCountInput';
 export * from './inventoryDecisionInput';
@@ -15,3 +20,4 @@ export * from './inventoryDecisionInputAction';
 export * from './inventoryImportInput';
 export * from './inventoryImportInputKind';
 export * from './inventoryPayload';
+export * from './openCaseEvidenceParams';

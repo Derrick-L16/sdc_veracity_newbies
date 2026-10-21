@@ -11,6 +11,10 @@ router.all("/backend/*path", async (req, res): Promise<void> => {
     return;
   }
   const segments = req.path.slice("/backend/".length).split("/");
+  if (segments[0] === "evidence") {
+    res.status(404).json({ error: "Endpoint not found." });
+    return;
+  }
   if (segments.some((part) => !/^[a-zA-Z0-9_-]+$/.test(part))) {
     res.status(400).json({ error: "Invalid path." });
     return;

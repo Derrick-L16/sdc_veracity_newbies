@@ -2,6 +2,10 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import { logger } from "./logger";
+import { randomBytes } from "node:crypto";
+
+// Per-process capability, never sent to the browser or logged.
+export const evidenceBridge = randomBytes(32).toString("hex");
 
 let backendUrl = "";
 let child: ChildProcess | undefined;
@@ -30,7 +34,7 @@ export async function startBackend() {
   child = spawn("python3", [
     fileURLToPath(new URL("../backend/server.py", import.meta.url)),
     "--port", String(port),
-  ], { stdio: ["ignore", "pipe", "pipe"] });
+  ], { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, VERACITY_EVIDENCE_BRIDGE: evidenceBridge } });
   child.stdout?.on("data", (message) => logger.info({ service: "inventory" }, String(message).trim()));
   child.stderr?.on("data", (message) => logger.info({ service: "inventory" }, String(message).trim()));
   let failure: Error | undefined;

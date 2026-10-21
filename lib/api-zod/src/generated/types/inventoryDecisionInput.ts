@@ -16,4 +16,6 @@ export interface InventoryDecisionInput {
   reason: string;
   /** @minimum 1 */
   version: number;
+  /** @minimum 0 */
+  attachmentRevision?: number;
 }

@@ -4,6 +4,7 @@ import { Link } from 'wouter'
 import { useApp } from '@/components/app/app-provider'
 import { buttonVariants } from '@/components/ui/button'
 import { ActionPanel } from '@/components/veracity/action-panel'
+import { CaseAttachments } from '@/components/veracity/case-attachments'
 import { CaseHeader, StockSummary, VersionSwitcher, stageContent } from '@/components/veracity/case-sections'
 import { CaseDetailSkeleton, StaleBanner } from '@/components/veracity/feedback'
 import { CoverageGauge, DiscrepancyBar } from '@/components/veracity/metrics'
@@ -72,6 +73,7 @@ export function CaseDetailView({ id, version }: { id: string; version?: number }
             </div>
           </Card>
 
+          <CaseAttachments key={`${id}-${viewed.version}`} stockCase={stockCase} viewed={viewed} historical={!isCurrent} />
           <section aria-labelledby="timeline-heading" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="timeline-heading" className="text-h3 font-semibold">

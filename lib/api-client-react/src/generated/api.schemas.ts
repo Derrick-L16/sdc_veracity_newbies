@@ -5,6 +5,61 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type EvidenceUploadInputContentType = typeof EvidenceUploadInputContentType[keyof typeof EvidenceUploadInputContentType];
+
+
+export const EvidenceUploadInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'application/pdf': 'application/pdf',
+} as const;
+
+export interface EvidenceUploadInput {
+  /** @pattern ^[a-zA-Z0-9-]{16,80}$ */
+  requestKey: string;
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  filename: string;
+  contentType: EvidenceUploadInputContentType;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+  /** @maxLength 1000 */
+  description?: string;
+  /** @minimum 1 */
+  version: number;
+}
+
+export interface EvidenceUploadTicket {
+  id: string;
+  finalized: boolean;
+  uploadURL?: string;
+}
+
+export type CaseAttachmentContentType = typeof CaseAttachmentContentType[keyof typeof CaseAttachmentContentType];
+
+
+export const CaseAttachmentContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'application/pdf': 'application/pdf',
+} as const;
+
+export interface CaseAttachment {
+  id: string;
+  filename: string;
+  contentType: CaseAttachmentContentType;
+  size: number;
+  description: string;
+  uploader: string;
+  uploadedAt: string;
+  revision: number;
+}
+
 /**
  * Original domain payload; authoritative fields and validation are preserved in the existing Python backend and frontend domain types.
  */
@@ -74,9 +129,18 @@ export interface InventoryDecisionInput {
   reason: string;
   /** @minimum 1 */
   version: number;
+  /** @minimum 0 */
+  attachmentRevision?: number;
 }
 
 export interface HealthStatus {
   status: string;
 }
+
+export type OpenCaseEvidenceParams = {
+/**
+ * @minimum 1
+ */
+version?: number;
+};
 

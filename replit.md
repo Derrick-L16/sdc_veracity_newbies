@@ -30,11 +30,24 @@ SQLite defaults to `artifacts/api-server/backend/veracity.sqlite3`; the original
 
 This remains the original local MVP: demo sessions allow anyone to choose Staff, Manager or Owner. This is not real authentication. `VERACITY_DEMO_MODE=false` disables demo sessions but does not add authentication. Keep this limitation visible when discussing production use; production authentication and durable hosted database choices are separate work, not part of the preservation-only port.
 
+## Case document evidence
+
+JPEG, PNG and PDF documents (10 MiB maximum each, optional description up to 1000 characters) are private App Storage objects. No file bytes are saved in SQLite, the frontend/public directory, Git, or a local upload folder. App Storage must be provisioned; missing configuration fails explicitly without a local fallback. The existing Python/SQLite store remains authoritative for case permissions, upload reservations, attachment metadata, immutable assessment snapshots and audit history. This is an intentional exception to the generic storage scaffold's new-auth/new-database setup: neither identity nor inventory persistence was replaced.
+
+Only managers and the case's submitting staff member can upload to an open case; owners can only view. This is enforced through the existing HttpOnly cookie session forwarded to Python. Express has a per-process private capability for internal evidence calls; the generic backend proxy rejects those paths. There are no generic upload, public file, replacement or deletion routes. The demo switcher still lets anyone choose a role, so these controls do not make this MVP safe for real sensitive evidence or production use.
+
+`/api/evidence/cases/:id/uploads` reserves an actor/case-scoped idempotent upload with a generated storage ID. The browser PUTs bytes directly to a short-lived private staging URL. Finalization checks actual stored size (not client MIME/size alone), decodes images with a pixel cap, parses PDFs, pins the stored generation, and preserves a create-only final object before linking it in a SQLite transaction. Upload URLs only address staging; reusing a URL cannot replace saved evidence. Failed verification never creates an attachment or upload audit entry. Transfer and finalize retries reuse the original ticket. Temporary staged bytes can exist for abandoned or invalid uploads; cleanup of abandoned objects is separate from user attachment deletion and must never remove linked final objects.
+
+Every decision, rejection and review request checks the client-observed attachment revision. Decision dialogs freeze that revision at opening, even if background polling refreshes the page. New uploads do not change assessments or quantities. Assessment versions snapshot only document IDs already available at assessment creation; historical pages and historical file requests enforce that membership. Current cases and closed Decision Passports show saved documents, with uploads disabled after closure.
+
+App Storage protects document bytes across service restarts; metadata retains the existing SQLite restart persistence and hosting limitations. No database or production deployment migration was performed.
+
 ## Tests
 
-- `pnpm test` — 16 original backend tests, including permissions, transactional rollback, duplicate posting prevention, stale evidence and HTTP sessions; uses temporary databases.
+- `pnpm test` — Python backend tests (temporary SQLite databases) plus file-content verification tests; includes permissions, transactional rollback, stale evidence/documents, idempotency, historical snapshots and HTTP sessions.
 - `pnpm run typecheck` — full workspace check.
 - `pnpm test:e2e` — Playwright against running workflows through `localhost:80`: CSV import, staff count, manager approval, persisted Passport, owner restrictions, direct routes and mobile navigation. Creates uniquely named `Migration test migration-*` inventory records in development; no existing records are altered.
+- The focused evidence browser test also creates uniquely named `Evidence test evidence-*` and `Manager evidence test evidence-*` development records and private fixture documents. It verifies real image/PDF upload, a lost-finalize-response retry, stale dialog rejection, spoofed/oversized files, roles, historical views and closed Passport access. Fixtures are generated in memory, not committed.
 - Screenshots/traces go to ignored `generated-artifacts/`.
 - Playwright uses the Replit-provided Chromium when present; elsewhere install its browser with `pnpm exec playwright install chromium`.
 - Registered validation commands: `test`, `typecheck`, `app-test`.

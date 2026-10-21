@@ -20,6 +20,9 @@ type DialogKind = 'approve' | 'reject' | 'review' | 'override' | null
 export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
   const { role, decide, requestReview } = useApp()
   const [dialog, setDialog] = useState<DialogKind>(null)
+  const [reviewed, setReviewed] = useState(stockCase)
+  const openDialog = (kind: DialogKind) => { setReviewed(stockCase); setDialog(kind) }
+  const guard = { version: reviewed.versions.at(-1)!.version, attachmentRevision: reviewed.attachmentRevision ?? 0 }
   const [forbidden, setForbidden] = useState(false)
   const current = stockCase.versions[stockCase.versions.length - 1]
   const supported = current.evidenceState === 'supported'
@@ -65,12 +68,12 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
         ) : (
           <>
             {supported ? (
-              <Button size="lg" onClick={() => setDialog('approve')} disabled={forbidden}>
+              <Button size="lg" onClick={() => openDialog('approve')} disabled={forbidden}>
                 <Check aria-hidden="true" />
                 Approve
               </Button>
             ) : (
-              <Button size="lg" onClick={() => setDialog('override')} disabled={forbidden}>
+              <Button size="lg" onClick={() => openDialog('override')} disabled={forbidden}>
                 <PenLine aria-hidden="true" />
                 Override with reason
               </Button>
@@ -84,13 +87,13 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
               {secondary
                 .filter((a) => a.key !== 'override')
                 .map((a) => (
-                  <Button key={a.key} variant="secondary" onClick={() => setDialog(a.key)} disabled={forbidden}>
+                  <Button key={a.key} variant="secondary" onClick={() => openDialog(a.key)} disabled={forbidden}>
                     <a.icon aria-hidden="true" />
                     {a.label}
                   </Button>
                 ))}
               {supported && (
-                <Button variant="ghost" onClick={() => setDialog('override')} disabled={forbidden}>
+                <Button variant="ghost" onClick={() => openDialog('override')} disabled={forbidden}>
                   <PenLine aria-hidden="true" />
                   Override with reason
                 </Button>
@@ -113,7 +116,7 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
               size="lg"
               className="flex-1"
               disabled={forbidden}
-              onClick={() => setDialog(supported ? 'approve' : 'override')}
+              onClick={() => openDialog(supported ? 'approve' : 'override')}
             >
               {supported ? <Check aria-hidden="true" /> : <PenLine aria-hidden="true" />}
               {supported ? 'Approve' : 'Override with reason'}
@@ -126,7 +129,7 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top" className="w-56 rounded-[12px] border border-line p-1">
                 {secondary.map((a) => (
-                    <DropdownMenuItem key={a.key} className="min-h-11 text-body-sm" onClick={() => setDialog(a.key)}>
+                    <DropdownMenuItem key={a.key} className="min-h-11 text-body-sm" onClick={() => openDialog(a.key)}>
                       <a.icon aria-hidden="true" />
                       {a.label}
                     </DropdownMenuItem>
@@ -143,8 +146,8 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
       <ImpactPreviewDialog
         open={dialog === 'approve'}
         onOpenChange={(o) => !o && setDialog(null)}
-        impact={current.impact}
-        onConfirm={() => run(() => decide(stockCase.id, 'approved', 'Evidence fully supports the correction.'), 'Correction approved. Stock updated.')}
+        impact={reviewed.versions.at(-1)!.impact}
+        onConfirm={() => run(() => decide(stockCase.id, 'approved', 'Evidence fully supports the correction.', guard), 'Correction approved. Stock updated.')}
       />
       <ReasonDialog
         open={dialog === 'reject'}
@@ -152,7 +155,7 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
         title="Reject this correction?"
         description="Stock will stay unchanged. Explain why so the team understands the decision."
         confirmLabel="Reject correction"
-        onConfirm={(reason) => run(() => decide(stockCase.id, 'rejected', reason), 'Correction rejected. Stock unchanged.')}
+        onConfirm={(reason) => run(() => decide(stockCase.id, 'rejected', reason, guard), 'Correction rejected. Stock unchanged.')}
       />
       <ReasonDialog
         open={dialog === 'review'}
@@ -160,15 +163,15 @@ export function ActionPanel({ stockCase }: { stockCase: StockCase }) {
         title="Request review"
         description="The case goes back for more evidence. Say what is missing."
         confirmLabel="Request review"
-        onConfirm={(reason) => run(() => requestReview(stockCase.id, reason), 'Review requested.')}
+        onConfirm={(reason) => run(() => requestReview(stockCase.id, reason, guard), 'Review requested.')}
       />
       <ReasonDialog
         open={dialog === 'override'}
         onOpenChange={(o) => !o && setDialog(null)}
         title="Override the recommendation?"
-        description={`Stock will be set to the counted ${stockCase.counted} even though evidence is not complete.`}
+        description={`Stock will be set to the counted ${reviewed.counted} even though evidence is not complete.`}
         confirmLabel="Confirm override"
-        onConfirm={(reason) => run(() => decide(stockCase.id, 'overridden', reason), 'Override saved. Stock updated.')}
+        onConfirm={(reason) => run(() => decide(stockCase.id, 'overridden', reason, guard), 'Override saved. Stock updated.')}
       />
     </>
   )
