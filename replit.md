@@ -14,7 +14,21 @@ Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 ## Source and routes
 
 - `artifacts/veracity/src/` — preserved imported screens, components, styles and state provider; wouter replaces Next routing.
-- Routes: `/` redirects to `/inbox`; `/inbox/frames`, `/count`, `/account`, `/cases/:id` (including `?v=` assessment versions), `/history`, `/history/:id`.
+- Other routes: `/inbox`, `/inbox/frames`, `/count`, `/account`, `/cases/:id`
+  (including `?v=` assessment versions), `/history`, `/history/:id`, `/reports`.
+- Home routing: `/` waits for the existing session/state, then sends Staff to
+  `/work`, Manager to `/inbox`, Owner to `/reports`. Successful role changes
+  use the same homes and clear the prior role's state. Brand links return home;
+  ordinary reloads of explicit case, Passport or report links do not redirect.
+- `/work` is the Staff-only personal work overview (existing current product
+  coverage, own open cases and decided outcomes), not a task-assignment system.
+- `/decisions` is the Owner-only decision overview presentation. It uses the
+  same server-authorized state already available for History; manager visibility
+  of decisions through History is unchanged. It has no mutation controls.
+  Search covers product/ID/reason; action, decider and inclusive MYT decision-date
+  filters are available. It highlights overrides, links to existing Passports,
+  uses saved final stock, and shows missing final values as unavailable. Rejection
+  shows zero correction, not a change to the physical count.
 - `artifacts/veracity/public/` — original public assets and example CSVs.
 - `artifacts/api-server/backend/` — original Python business logic, SQLite database and backend tests.
 - `artifacts/api-server/src/routes/backend.ts` — replacement for the Next API proxy, preserving `/api/backend/*`, browser-origin checks and HttpOnly session cookies.
@@ -71,6 +85,11 @@ Development data includes earlier browser-test records; it is not business data.
 
 ## Tests
 
+- `pnpm exec playwright test tests/role-homes.spec.ts` — real-record role landing,
+  session reloads, preserved direct links, read-only Owner navigation, Staff
+  scoping and mobile layout; browser-only fixtures (no inventory writes) cover
+  all decision types, exact timestamp ordering, MYT date boundaries, invalid
+  ranges, decider/action/text filters, empty results and missing stock values.
 - `pnpm exec playwright test tests/weekly-report.spec.ts` — reads existing development records (no synthetic products/counts), verifies report totals, prior-week query forwarding and frozen reloads, case links, mobile layout, staff/owner permissions and failure/retry. Historical GETs save the requested weekly snapshot.
 - `pnpm test` — Python backend tests (temporary SQLite databases) plus file-content verification tests; includes permissions, transactional rollback, stale evidence/documents, idempotency, historical snapshots and HTTP sessions.
 - `pnpm run typecheck` — full workspace check.

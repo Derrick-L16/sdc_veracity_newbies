@@ -51,6 +51,8 @@ test("weekly dashboard uses real reports, persists week selection and enforces r
   await page.getByRole("button", { name: /Role: Manager/ }).click();
   await page.getByRole("menuitemradio", { name: /Staff/ }).click();
   await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/work$/);
+  await page.goto("/reports");
   await expect(page.getByText("Managers and owners only", { exact: true })).toBeVisible();
   await expect(page.getByTestId("stat-countSubmissions")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Summary", exact: true })).toHaveCount(0);
@@ -61,6 +63,7 @@ test("weekly dashboard uses real reports, persists week selection and enforces r
   await page.getByRole("button", { name: /Role: Staff/ }).click();
   await page.getByRole("menuitemradio", { name: /Owner/ }).click();
   await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/reports$/);
   await expect(page.getByTestId("stat-countSubmissions")).toHaveText(String(current.totals.countSubmissions));
 
   // A failed request must not leave another week's figures under a new label.

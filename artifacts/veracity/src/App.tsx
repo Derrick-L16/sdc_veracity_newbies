@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { Redirect, Route, Switch, useLocation, useParams, useSearch, Router as WouterRouter } from 'wouter'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { AppProvider } from '@/components/app/app-provider'
+import { AppProvider, useApp } from '@/components/app/app-provider'
 import { AppShell } from '@/components/app/app-shell'
 import { Toaster } from '@/components/ui/sonner'
 import { AccountView } from '@/components/screens/account-view'
@@ -13,6 +13,10 @@ import { InboxFramesView } from '@/components/screens/inbox-frames-view'
 import { InboxView } from '@/components/screens/inbox-view'
 import { PassportView } from '@/components/screens/passport-view'
 import { WeeklyReportView } from '@/components/screens/weekly-report-view'
+import { OwnerDecisionsView } from '@/components/screens/owner-decisions-view'
+import { StaffWorkView } from '@/components/screens/staff-work-view'
+import { ErrorNotice } from '@/components/veracity/primitives'
+import { roleHome } from '@/lib/role-home'
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -38,12 +42,21 @@ function PassportPage() {
   return <PassportView id={id} />
 }
 
+function RoleLanding() {
+  const { role, loading, error, refresh } = useApp()
+  if (loading) return <p role="status" className="text-body-sm text-fg-secondary">Loading your workspace…</p>
+  if (error) return <ErrorNotice title="Could not load your workspace" description={error} onRetry={() => { void refresh().catch(() => {}) }} />
+  return <Redirect to={roleHome(role)} replace />
+}
+
 function Router() {
   const [location] = useLocation()
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/"><Redirect to="/inbox" replace /></Route>
+        <Route path="/"><RoleLanding /></Route>
+        <Route path="/work"><Titled title="My work · Veracity"><StaffWorkView /></Titled></Route>
+        <Route path="/decisions"><Titled title="Decision overview · Veracity"><OwnerDecisionsView /></Titled></Route>
         <Route path="/inbox"><Titled title="Inbox · Veracity"><InboxView /></Titled></Route>
         <Route path="/inbox/frames"><Titled title="Inbox frames · Veracity"><InboxFramesView /></Titled></Route>
         <Route path="/count"><Titled title="New count · Veracity"><CountView /></Titled></Route>
