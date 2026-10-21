@@ -32,7 +32,13 @@ This remains the original local MVP: demo sessions allow anyone to choose Staff,
 
 ## Case document evidence
 
-JPEG, PNG and PDF documents (10 MiB maximum each, optional description up to 1000 characters) are private App Storage objects. No file bytes are saved in SQLite, the frontend/public directory, Git, or a local upload folder. App Storage must be provisioned; missing configuration fails explicitly without a local fallback. The existing Python/SQLite store remains authoritative for case permissions, upload reservations, attachment metadata, immutable assessment snapshots and audit history. This is an intentional exception to the generic storage scaffold's new-auth/new-database setup: neither identity nor inventory persistence was replaced.
+For explicit Windows/macOS/Linux development without Replit services, see root
+`README.md` and `node local-dev/start.mjs`. These additive launchers keep the same
+frontend/Express/Python structure, use separate ignored `.veracity-local` test
+state, and opt into authenticated development-only disk uploads. Replit workflows
+do not opt into this mode; cloud App Storage behavior remains unchanged.
+
+In default Replit mode, JPEG, PNG and PDF documents (10 MiB maximum each, optional description up to 1000 characters) are private App Storage objects. No file bytes are saved in SQLite, the frontend/public directory, Git, or a local upload folder in this mode. App Storage must be provisioned; missing configuration fails explicitly without a local fallback. The existing Python/SQLite store remains authoritative for case permissions, upload reservations, attachment metadata, immutable assessment snapshots and audit history. This is an intentional exception to the generic storage scaffold's new-auth/new-database setup: neither identity nor inventory persistence was replaced.
 
 Only managers and the case's submitting staff member can upload to an open case; owners can only view. This is enforced through the existing HttpOnly cookie session forwarded to Python. Express has a per-process private capability for internal evidence calls; the generic backend proxy rejects those paths. There are no generic upload, public file, replacement or deletion routes. The demo switcher still lets anyone choose a role, so these controls do not make this MVP safe for real sensitive evidence or production use.
 

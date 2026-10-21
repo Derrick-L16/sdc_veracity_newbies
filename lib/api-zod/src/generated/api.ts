@@ -42,6 +42,17 @@ export const RequestCaseEvidenceUploadResponse = zod.object({
 
 
 /**
+ * @summary Development-only authenticated file transfer; disabled in cloud mode
+ */
+export const TransferLocalCaseEvidenceParams = zod.object({
+  "id": zod.coerce.string(),
+  "uploadId": zod.coerce.string()
+})
+
+export const TransferLocalCaseEvidenceResponse = zod.void()
+
+
+/**
  * @summary Verify private staged bytes, preserve an immutable copy and atomically link evidence
  */
 export const FinalizeCaseEvidenceUploadParams = zod.object({

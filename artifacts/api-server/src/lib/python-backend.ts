@@ -31,7 +31,9 @@ export async function startBackend() {
     });
   });
   backendUrl = `http://127.0.0.1:${port}`;
-  child = spawn("python3", [
+  const pythonArgs = JSON.parse(process.env.VERACITY_PYTHON_ARGS ?? "[]") as string[];
+  child = spawn(process.env.PYTHON_EXECUTABLE || "python3", [
+    ...pythonArgs,
     fileURLToPath(new URL("../backend/server.py", import.meta.url)),
     "--port", String(port),
   ], { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, VERACITY_EVIDENCE_BRIDGE: evidenceBridge } });
