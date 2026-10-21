@@ -1,10 +1,12 @@
 import http from 'node:http'
 import path from 'node:path'
-import { dependency, port, freePort, runNode, fail } from './common.mjs'
+import { root, dependency, port, freePort, runNode, fail } from './common.mjs'
+import { prepareNativeBinaries } from './native.mjs'
 
 // A local-only gateway supplies the same /api routing as Replit. Existing Vite
 // configuration and the frontend's relative API URLs need no proxy rewrite.
 try {
+  prepareNativeBinaries(root)
   const vite = path.join(path.dirname(dependency('vite/package.json', 'veracity')), 'bin/vite.js')
   const webPort = port(process.env.LOCAL_WEB_PORT, 3000, 'LOCAL_WEB_PORT')
   const apiPort = port(process.env.LOCAL_API_PORT, 8000, 'LOCAL_API_PORT')

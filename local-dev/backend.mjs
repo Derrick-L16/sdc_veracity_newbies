@@ -1,12 +1,14 @@
 import path from 'node:path'
 import { mkdir } from 'node:fs/promises'
 import { root, python, port, freePort, buildApi, runNode, fail } from './common.mjs'
+import { prepareNativeBinaries } from './native.mjs'
 
 try {
   const apiPort = port(process.env.LOCAL_API_PORT, 8000, 'LOCAL_API_PORT')
   const webPort = port(process.env.LOCAL_WEB_PORT, 3000, 'LOCAL_WEB_PORT')
   await freePort(apiPort)
   const py = python()
+  prepareNativeBinaries(root)
   const dataDir = path.resolve(process.env.LOCAL_DATA_DIR ?? path.join(root, '.veracity-local'))
   await mkdir(dataDir, { recursive: true })
   await buildApi()

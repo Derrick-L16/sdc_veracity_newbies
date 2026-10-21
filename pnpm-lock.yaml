@@ -71,6 +71,7 @@ catalogs:
       version: 3.25.76
 
 overrides:
+  proxy-addr: 2.0.8
   esbuild>@esbuild/darwin-arm64: '-'
   esbuild>@esbuild/darwin-x64: '-'
   esbuild>@esbuild/freebsd-arm64: '-'

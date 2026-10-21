@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { root, dependency, python, runNode, fail, port, freePort } from './common.mjs'
+import { prepareNativeBinaries } from './native.mjs'
 
 try {
   dependency('vite/package.json', 'veracity')
@@ -10,6 +11,8 @@ try {
     port(process.env.LOCAL_VITE_PORT, 5173, 'LOCAL_VITE_PORT')]
   if (new Set(ports).size !== 3) throw new Error('Local frontend, API, and Vite ports must be different.')
   for (const p of ports) await freePort(p)
+  // Prepare once before launching the children to avoid simultaneous installs.
+  prepareNativeBinaries(root)
   runNode(path.join(root, 'local-dev/backend.mjs'))
   runNode(path.join(root, 'local-dev/frontend.mjs'))
 } catch (error) { fail(error) }
