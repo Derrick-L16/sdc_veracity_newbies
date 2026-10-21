@@ -1,7 +1,7 @@
-'use client'
 
 import { ClipboardList, History, Inbox, ShieldCheck, User } from 'lucide-react'
-import { Link, useLocation } from 'wouter'
+import { Link } from 'wouter'
+import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
 import { useApp } from './app-provider'
 import { RoleSwitcher } from './role-switcher'

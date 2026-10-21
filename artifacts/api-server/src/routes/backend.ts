@@ -1,42 +1,47 @@
-import { Router } from "express";
+import { Router, type IRouter } from "express";
+import { getBackendUrl } from "../lib/python-backend";
 
-// Preserve the imported API contract and its existing Python/SQLite business logic.
-const router = Router();
+const router: IRouter = Router();
 
-router.use(async (req, res): Promise<void> => {
+// Retain the original Next proxy contract and keep all domain validation,
+// role permissions, transactions and persistence in the existing Python API.
+router.all("/backend/*path", async (req, res): Promise<void> => {
   if (req.method !== "GET" && req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed." });
     return;
   }
-  const path = req.path.split("/").filter(Boolean);
-  if (!path.length || path.some(part => !/^[a-zA-Z0-9_-]+$/.test(part))) {
+  const segments = req.path.slice("/backend/".length).split("/");
+  if (segments[0] === "evidence") {
+    res.status(404).json({ error: "Endpoint not found." });
+    return;
+  }
+  if (segments.some((part) => !/^[a-zA-Z0-9_-]+$/.test(part))) {
     res.status(400).json({ error: "Invalid path." });
     return;
   }
+  // The shared reverse proxy terminates HTTPS. Use its forwarded host and
+  // protocol to compare the browser's exact origin, rather than localhost.
+  const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
+  const protocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim() || req.protocol;
   if (req.method === "POST") {
-    const origin = req.get("origin");
-    // Replit terminates TLS at the shared proxy.
-    const protocol = req.get("x-forwarded-proto")?.split(",")[0].trim() || req.protocol;
-    const host = req.get("x-forwarded-host")?.split(",")[0].trim() || req.get("host");
-    if (!origin || origin !== `${protocol}://${host}`) {
+    const expected = process.env.APP_ORIGIN || `${protocol}://${host}`;
+    if (!req.get("origin") || req.get("origin") !== expected) {
       res.status(403).json({ error: "Untrusted request origin." });
       return;
     }
   }
   try {
-    const upstream = await fetch(`http://127.0.0.1:8000/${path.join("/")}`, {
+    const response = await fetch(`${getBackendUrl()}/${segments.join("/")}`, {
       method: req.method,
       headers: { "Content-Type": "application/json", Cookie: req.get("cookie") || "" },
       body: req.method === "POST" ? JSON.stringify(req.body) : undefined,
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(15000),
     });
+    res.set("Content-Type", "application/json");
     res.set("Cache-Control", "no-store");
-    const cookie = upstream.headers.get("set-cookie");
-    if (cookie) {
-      const secure = req.get("x-forwarded-proto")?.split(",")[0].trim() === "https" || req.secure;
-      res.set("Set-Cookie", cookie + (secure ? "; Secure" : ""));
-    }
-    res.status(upstream.status).type("json").send(await upstream.text());
+    const cookie = response.headers.get("set-cookie");
+    if (cookie) res.set("Set-Cookie", cookie + (protocol === "https" ? "; Secure" : ""));
+    res.status(response.status).send(await response.text());
   } catch (error) {
     req.log.error({ err: error }, "Inventory backend unavailable");
     res.status(503).json({ error: "Inventory backend unavailable. Please retry." });

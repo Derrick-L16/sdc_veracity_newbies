@@ -1,4 +1,3 @@
-'use client'
 
 import { DataImport } from '@/components/veracity/data-import'
 import { Check } from 'lucide-react'

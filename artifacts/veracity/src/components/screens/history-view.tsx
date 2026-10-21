@@ -1,4 +1,3 @@
-'use client'
 
 import { History, Search } from 'lucide-react'
 import { useState } from 'react'

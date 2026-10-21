@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "Veracity"
-description = "Explainable inventory corrections with stock counts, evidence review, approvals, and permanent Decision Passports."
+description = "An inventory exception management app for reviewing stock evidence, recording physical counts, and resolving inventory cases."
 version = "1.0.0"
 id = "artifacts/veracity"
 router = "path"

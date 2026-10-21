@@ -1,4 +1,3 @@
-'use client'
 
 import { ChevronDown, UserCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'

@@ -44,5 +44,23 @@ class HTTPTests(unittest.TestCase):
         req=urllib.request.Request(self.base+'counts',data=b'not json',headers={'Content-Type':'application/json'})
         with self.assertRaises(urllib.error.HTTPError) as err:self.opener.open(req,timeout=5)
         self.assertEqual(err.exception.code,400)
+    def test_evidence_requires_session_and_private_bridge(self):
+        import os
+        from unittest.mock import patch
+        self.call('session', {'role':'manager'})
+        self.call('imports', {'kind':'products','rows':[{'id':'A','name':'Drink','recorded':50}]})
+        c=self.call('counts', {'productId':'A','counted':43})
+        body={'requestKey':'http-retry-key-12345','filename':'receipt.pdf','contentType':'application/pdf','size':200,'version':1}
+        path='evidence/'+c['id']+'/uploads'
+        with patch.dict(os.environ, {'VERACITY_EVIDENCE_BRIDGE':'private-test-bridge'}):
+            with self.assertRaises(urllib.error.HTTPError) as err:self.call(path,body)
+            self.assertEqual(err.exception.code,403)
+            req=urllib.request.Request(self.base+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json','X-Evidence-Bridge':'private-test-bridge'})
+            with self.opener.open(req,timeout=5) as response:ticket=json.load(response)
+            self.assertTrue(ticket['id'])
+            no_cookie=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            unsigned=urllib.request.Request(self.base+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json','X-Evidence-Bridge':'private-test-bridge'})
+            with self.assertRaises(urllib.error.HTTPError) as err:no_cookie.open(unsigned,timeout=5)
+            self.assertEqual(err.exception.code,401)
 
 if __name__=='__main__':unittest.main()

@@ -1,9 +1,8 @@
-'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { OPEN_STATUSES, USERS } from '@/lib/data'
-import type { Decision, Product, Role, StockCase, User } from '@/lib/types'
+import type { Decision, DecisionGuard, Product, Role, StockCase, User } from '@/lib/types'
 import type { StockSummary, StaffProgress } from '@/lib/stock'
 
 const EMPTY_SUMMARY: StockSummary = { total: 0, counts: { verified: 0, awaiting: 0, attention: 0, not_counted: 0 }, lastCount: null, missing: { units: 0, value: 0, explained: 0, unexplained: 0, items: [] } }
@@ -14,8 +13,8 @@ interface AppState {
   cases: StockCase[]; products: Product[]; summary: StockSummary; progress: StaffProgress
   loading: boolean; error: string | null; refresh: () => Promise<void>
   inboxCases: StockCase[]; getCase: (id: string) => StockCase | undefined
-  decide: (id: string, action: Decision['action'], reason: string) => Promise<void>
-  requestReview: (id: string, reason: string) => Promise<void>
+  decide: (id: string, action: Decision['action'], reason: string, guard: DecisionGuard) => Promise<void>
+  requestReview: (id: string, reason: string, guard: DecisionGuard) => Promise<void>
   reassess: (id: string) => Promise<void>
   submitCount: (input: { product: string; recorded: number; counted: number; note: string }) => Promise<StockCase | null>
   findOpenCase: (product: string, counted: number) => StockCase | undefined
@@ -66,8 +65,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try { const result = await api<StockCase>(path, body); await refresh(); return result }
     catch (e) { void refresh().catch(() => {}); throw e }
   }, [refresh])
-  const decide = useCallback(async (id: string, action: Decision['action'], reason: string) => { await mutate(`cases/${id}/decisions`, { action, reason, version: getCase(id)?.versions.at(-1)?.version }) }, [mutate, getCase])
-  const requestReview = useCallback(async (id: string, reason: string) => { await mutate(`cases/${id}/decisions`, { action: 'review', reason, version: getCase(id)?.versions.at(-1)?.version }) }, [mutate, getCase])
+  const decide = useCallback(async (id: string, action: Decision['action'], reason: string, guard: DecisionGuard) => { await mutate(`cases/${id}/decisions`, { action, reason, ...guard }) }, [mutate])
+  const requestReview = useCallback(async (id: string, reason: string, guard: DecisionGuard) => { await mutate(`cases/${id}/decisions`, { action: 'review', reason, ...guard }) }, [mutate])
   const reassess = useCallback(async (id: string) => { await mutate(`cases/${id}/reassess`, {}) }, [mutate])
   const submitCount = useCallback(async (input: { product: string; recorded: number; counted: number; note: string }) => {
     const result = await api<StockCase | { matched: true }>('counts', input); await refresh(); return 'matched' in result ? null : result

@@ -1,4 +1,3 @@
-'use client'
 
 import { CheckCircle2, ChevronDown, XCircle } from 'lucide-react'
 import { useId, useState } from 'react'

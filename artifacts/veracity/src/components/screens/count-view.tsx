@@ -1,7 +1,7 @@
-'use client'
 
 import { ChevronDown, Loader2, Send } from 'lucide-react'
-import { Link, useLocation } from 'wouter'
+import { Link } from 'wouter'
+import { useLocation } from 'wouter'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
 import { useApp } from '@/components/app/app-provider'

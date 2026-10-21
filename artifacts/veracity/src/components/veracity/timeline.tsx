@@ -1,4 +1,3 @@
-'use client'
 
 import { ChevronDown, ClipboardCheck, FileSearch, Flag, Scale, UserCheck, type LucideIcon } from 'lucide-react'
 import { useId, useState } from 'react'

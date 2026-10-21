@@ -2,7 +2,6 @@ import express, { type Express } from "express";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import backendRouter from "./routes/backend";
 
 const app: Express = express();
 
@@ -25,10 +24,9 @@ app.use(
     },
   }),
 );
-app.use(express.json({ limit: 2_000_000 }));
+app.use(express.json({ limit: 2000000 }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
-app.use("/api/backend", backendRouter);
 
 export default app;

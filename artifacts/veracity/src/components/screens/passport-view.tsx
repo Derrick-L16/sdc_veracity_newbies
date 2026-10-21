@@ -1,4 +1,3 @@
-'use client'
 
 import { FileSearch } from 'lucide-react'
 import { Link } from 'wouter'
@@ -8,6 +7,7 @@ import { CaseHeader, StockSummary, stageContent } from '@/components/veracity/ca
 import { Card, EmptyState, LockNote, StatTile } from '@/components/veracity/primitives'
 import { CaseDetailSkeleton } from '@/components/veracity/feedback'
 import { Timeline } from '@/components/veracity/timeline'
+import { CaseAttachments } from '@/components/veracity/case-attachments'
 import { ROLE_INFO } from '@/lib/data'
 import { formatDateTime } from '@/lib/format'
 
@@ -66,6 +66,7 @@ export function PassportView({ id }: { id: string }) {
         )}
       </Card>
 
+      <CaseAttachments stockCase={stockCase} viewed={latest} readOnly />
       <section aria-labelledby="passport-timeline" className="flex flex-col gap-4">
         <h2 id="passport-timeline" className="text-h3 font-semibold">
           Full record

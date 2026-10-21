@@ -1,4 +1,3 @@
-'use client'
 
 import { ClipboardList, Inbox, X } from 'lucide-react'
 import { Link } from 'wouter'

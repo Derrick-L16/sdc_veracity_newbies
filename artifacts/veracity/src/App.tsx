@@ -1,58 +1,81 @@
-import { useEffect } from 'react'
-import { Redirect, Route, Router, Switch, useLocation, useSearch } from 'wouter'
+import { useEffect, type ReactNode } from 'react'
 import { ThemeProvider } from 'next-themes'
+import { Redirect, Route, Switch, useLocation, useParams, useSearch, Router as WouterRouter } from 'wouter'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { AppProvider } from '@/components/app/app-provider'
 import { AppShell } from '@/components/app/app-shell'
 import { Toaster } from '@/components/ui/sonner'
 import { AccountView } from '@/components/screens/account-view'
+import { CaseDetailView } from '@/components/screens/case-detail-view'
 import { CountView } from '@/components/screens/count-view'
 import { HistoryView } from '@/components/screens/history-view'
+import { InboxFramesView } from '@/components/screens/inbox-frames-view'
 import { InboxView } from '@/components/screens/inbox-view'
-import { CaseDetailView } from '@/components/screens/case-detail-view'
 import { PassportView } from '@/components/screens/passport-view'
-import { ErrorBoundary } from '@/components/error-boundary'
 
-function Pages() {
-  const [location] = useLocation()
-  const search = useSearch()
+function useTitle(title: string) {
   useEffect(() => {
-    const titles: Record<string, string> = {
-      '/count': 'New count', '/inbox': 'Inbox', '/inbox/frames': 'Inbox frames',
-      '/history': 'History', '/account': 'Account',
-    }
-    const id = location.split('/').at(-1)
-    document.title = `${titles[location] ?? (location.startsWith('/history/') ? `Decision Passport ${id}` : location.startsWith('/cases/') ? id : 'Page not found')} · Veracity`
-  }, [location])
-  useEffect(() => { window.scrollTo(0, 0) }, [location])
+    document.title = title
+  }, [title])
+}
+
+function Titled({ title, children }: { title: string; children: ReactNode }) {
+  useTitle(title)
+  return <>{children}</>
+}
+
+function CasePage() {
+  const { id = '' } = useParams<{ id: string }>()
+  const v = new URLSearchParams(useSearch()).get('v')
+  useTitle(`${id} · Veracity`)
+  return <CaseDetailView id={id} version={v ? Number(v) : undefined} />
+}
+
+function PassportPage() {
+  const { id = '' } = useParams<{ id: string }>()
+  useTitle(`Decision Passport ${id} · Veracity`)
+  return <PassportView id={id} />
+}
+
+function Router() {
+  const [location] = useLocation()
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/"><Redirect to="/inbox" /></Route>
-        <Route path="/inbox" component={InboxView} />
-        <Route path="/inbox/frames" component={InboxView} />
-        <Route path="/count" component={CountView} />
-        <Route path="/history" component={HistoryView} />
-        <Route path="/account" component={AccountView} />
-        <Route path="/cases/:id">{({ id }) => {
-          const version = new URLSearchParams(search).get('v')
-          return <CaseDetailView id={id} version={version ? Number(version) : undefined} />
-        }}</Route>
-        <Route path="/history/:id">{({ id }) => <PassportView id={id} />}</Route>
-        <Route><h1 className="text-h1 font-semibold">Page not found</h1><a href="/inbox">Return to Inbox</a></Route>
+        <Route path="/"><Redirect to="/inbox" replace /></Route>
+        <Route path="/inbox"><Titled title="Inbox · Veracity"><InboxView /></Titled></Route>
+        <Route path="/inbox/frames"><Titled title="Inbox frames · Veracity"><InboxFramesView /></Titled></Route>
+        <Route path="/count"><Titled title="New count · Veracity"><CountView /></Titled></Route>
+        <Route path="/account"><Titled title="Account · Veracity"><AccountView /></Titled></Route>
+        <Route path="/cases/:id" component={CasePage} />
+        <Route path="/history"><Titled title="History · Veracity"><HistoryView /></Titled></Route>
+        <Route path="/history/:id" component={PassportPage} />
+        <Route>
+          <Titled title="Page not found · Veracity">
+            <div className="flex min-h-80 flex-col items-center justify-center gap-4">
+              <h1 className="text-h1 font-semibold">404 · Page not found</h1>
+              <a href={`${import.meta.env.BASE_URL}inbox`} className="text-accent-text underline">Back to Inbox</a>
+            </div>
+          </Titled>
+        </Route>
       </Switch>
     </ErrorBoundary>
   )
 }
 
-export default function App() {
+function App() {
   return (
-    <Router base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <AppProvider>
-          <AppShell><Pages /></AppShell>
+          <AppShell>
+            <Router />
+          </AppShell>
           <Toaster position="top-center" />
         </AppProvider>
-      </ThemeProvider>
-    </Router>
+      </WouterRouter>
+    </ThemeProvider>
   )
 }
+
+export default App

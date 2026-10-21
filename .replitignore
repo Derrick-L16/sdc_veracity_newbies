@@ -3,9 +3,9 @@
 
 # No need to store the pnpm store twice.
 .local
-.migration-backup
+**/__pycache__
 **/*.sqlite3
 **/*.sqlite3-wal
 **/*.sqlite3-shm
-**/__pycache__
-/generated-artifacts/
+.migration-backup
+generated-artifacts

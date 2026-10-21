@@ -56,6 +56,11 @@ export default defineConfig({
       clean: true,
       prettier: true,
       override: {
+        operations: {
+          // Orval names a query-argument type and a path Zod schema both
+          // OpenCaseEvidenceParams. Paths are validated by the evidence router.
+          openCaseEvidence: { zod: { generate: { param: false } } },
+        },
         zod: {
           // Orval resolves `auto` from lib/api-spec/package.json, which has no
           // zod dependency, so orval >= 8.23 falls back to Zod 4 syntax while
