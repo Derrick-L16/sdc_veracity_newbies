@@ -1,3 +1,4 @@
 - [Migration preservation](migration-preservation.md) — existing backend and storage must stay intact; root-level Next imports need an explicit copy-script source.
 - [OpenAPI generation](openapi-generation.md) — operations with path and query parameters can collide in the generated Zod/type barrel.
 - [Stale preview services](stale-preview-services.md) — a healthy API response can come from an older process when managed workflows fail on occupied ports.
+- [Merge state rechecks](merge-state-rechecks.md) — pending merge/index state has changed between turns; verify current state again before acting on approval.
