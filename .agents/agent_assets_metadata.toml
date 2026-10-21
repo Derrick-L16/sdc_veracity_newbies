@@ -1,0 +1,30 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "onxZMYQ0l89svfr9hEDDH"
+uri = "file://artifacts/veracity/public/examples/products.csv"
+type = "table"
+title = "Sample inventory — products.csv"
+description = "Import this first to load three sample products and their recorded stock quantities."
+logical_id = "3019bcd4-4b06-42bf-84ce-9a1ff590b28e"
+content_hash = "sha256:69cf87be2bfafcfbdd1dcb17d95aa755aceeeedd40deff7c61af4b25e8b71f4a"
+size = 106
+mtime_ms = 1792512020085
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:b82f9ee7-5283-4be2-b0fb-660969c4433c/3019bcd4-4b06-42bf-84ce-9a1ff590b28e/632e753c-545c-483f-9b24-96f11649ee6b"
+storage_version_token = "1792561008964303"
+content_type = "text/csv"
+
+[[outputs]]
+id = "3dwyn9JU2wvnSWvH2rphX"
+uri = "file://artifacts/veracity/public/examples/movements.csv"
+type = "table"
+title = "Sample stock movements — movements.csv"
+description = "Import this after products.csv to add sample inventory transaction records."
+logical_id = "883aced8-1065-4813-b6da-bb369313744d"
+content_hash = "sha256:716507a97a07cb665b23e9edd5fc7abbc6089e797eacd751aa58bab564d707ca"
+size = 401
+mtime_ms = 1792512020085
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:b82f9ee7-5283-4be2-b0fb-660969c4433c/883aced8-1065-4813-b6da-bb369313744d/424ea8cf-42e0-43cb-a52f-f171784ad497"
+storage_version_token = "1792561010253251"
+content_type = "text/csv"
