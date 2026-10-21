@@ -1,3 +1,4 @@
 - [Migration preservation](migration-preservation.md) — existing backend and storage must stay intact; root-level Next imports need an explicit copy-script source.
 - [OpenAPI generation](openapi-generation.md) — operations with path and query parameters can collide in the generated Zod/type barrel.
 - [Stale preview services](stale-preview-services.md) — a healthy API response can come from an older process when managed workflows fail on occupied ports.
+- [Weekly reporting goal](weekly-reporting-goal.md) — manager summaries should explain weekly inventory work; the user chose a small real-data dashboard over a disposable mockup.

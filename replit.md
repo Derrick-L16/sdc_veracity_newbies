@@ -42,8 +42,36 @@ Every decision, rejection and review request checks the client-observed attachme
 
 App Storage protects document bytes across service restarts; metadata retains the existing SQLite restart persistence and hosting limitations. No database or production deployment migration was performed.
 
+## Weekly inventory reporting
+
+Managers and read-only owners have a **Summary** navigation entry at `/reports`.
+`GET /api/backend/reports/weekly?week=YYYY-MM-DD` requires their existing session;
+staff cannot access the aggregate report. The optional week is a Monday from
+2000 onwards, no later than this week. Calendar boundaries are Monday–Sunday in
+`Asia/Kuala_Lumpur`, with an exclusive next-Monday cutoff. The current week
+refreshes every 30 seconds while visible. The week selection is in the URL.
+
+Counts submitted includes matching counts (which create no case), and products
+counted deduplicates product IDs within the week. New cases use creation time;
+closed cases use decision time even if opened earlier. Outstanding cases include
+earlier weeks, reconstructed at the cutoff from assessments, review events and
+decisions. Aged cases are open at least 7 days. Shortage/surplus figures sum initial
+differences on new cases; repeated observations are not net stock movements,
+confirmed losses or monetary valuations.
+
+Closed-week summaries are reconstructed on first access and persisted as JSON
+metadata in the existing SQLite `weekly_reports` table. They are not automatically
+captured on Sunday. **Why:** the local MVP has no scheduler or real manager
+identities; freezing on first read makes later viewing stable without pretending
+historical stock values or scheduled delivery existed. Backdated changes after
+that first read are intentionally not reflected. Current case links may show a
+newer status than a saved summary. The current week's report is never frozen.
+No email delivery, task assignment system, new database or mock data was added.
+Development data includes earlier browser-test records; it is not business data.
+
 ## Tests
 
+- `pnpm exec playwright test tests/weekly-report.spec.ts` — reads existing development records (no synthetic products/counts), verifies report totals, prior-week query forwarding and frozen reloads, case links, mobile layout, staff/owner permissions and failure/retry. Historical GETs save the requested weekly snapshot.
 - `pnpm test` — Python backend tests (temporary SQLite databases) plus file-content verification tests; includes permissions, transactional rollback, stale evidence/documents, idempotency, historical snapshots and HTTP sessions.
 - `pnpm run typecheck` — full workspace check.
 - `pnpm test:e2e` — Playwright against running workflows through `localhost:80`: CSV import, staff count, manager approval, persisted Passport, owner restrictions, direct routes and mobile navigation. Creates uniquely named `Migration test migration-*` inventory records in development; no existing records are altered.

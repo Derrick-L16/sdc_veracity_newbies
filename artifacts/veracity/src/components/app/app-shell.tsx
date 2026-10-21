@@ -1,5 +1,5 @@
 
-import { ClipboardList, History, Inbox, ShieldCheck, User } from 'lucide-react'
+import { BarChart3, ClipboardList, History, Inbox, ShieldCheck, User } from 'lucide-react'
 import { Link } from 'wouter'
 import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/count', label: 'Count', icon: ClipboardList },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/history', label: 'History', icon: History },
+  { href: '/reports', label: 'Summary', icon: BarChart3, managerOnly: true },
   { href: '/account', label: 'Account', icon: User },
 ]
 
@@ -29,7 +30,8 @@ function Brand() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [pathname] = useLocation()
-  const { inboxCases } = useApp()
+  const { inboxCases, role } = useApp()
+  const nav = NAV.filter((item) => !item.managerOnly || role === 'manager' || role === 'owner')
   const inboxCount = inboxCases.length
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`) || (href === '/inbox' && pathname.startsWith('/cases'))
 
@@ -45,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col gap-8 border-r border-line bg-surface p-5 md:flex">
         <Brand />
         <nav aria-label="Main" className="flex flex-col gap-1">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const active = isActive(item.href)
             return (
               <Link
@@ -87,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active = isActive(item.href)
           return (
             <Link

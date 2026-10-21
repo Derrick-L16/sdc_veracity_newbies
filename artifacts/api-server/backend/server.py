@@ -9,6 +9,7 @@ import secrets
 import sqlite3
 import sys
 import attachments
+import reports
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -40,6 +41,7 @@ def init():
         CREATE TABLE IF NOT EXISTS ledger(id INTEGER PRIMARY KEY,case_id TEXT UNIQUE NOT NULL,product_id TEXT NOT NULL,before_qty INTEGER NOT NULL,after_qty INTEGER NOT NULL,detail TEXT NOT NULL);
         ''')
         attachments.init(db)
+        reports.init(db)
 
 def audit(db,user,action,cid,detail): db.execute('INSERT INTO audit(at,actor,action,case_id,detail) VALUES(?,?,?,?,?)',(now(),user['name'],action,cid,dump(detail)))
 def integer(value, label, minimum=0):
@@ -206,7 +208,8 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(b,dict): raise APIError('Expected JSON object.')
             path=self.path.split('?')[0].strip('/').split('/')
             with connect() as db:
-                db.execute('BEGIN IMMEDIATE' if self.command=='POST' else 'BEGIN')
+                reporting = self.command=='GET' and path==['reports','weekly']
+                db.execute('BEGIN IMMEDIATE' if self.command=='POST' or reporting else 'BEGIN')
                 if path==['health'] and self.command=='GET': self.respond(200,{'ok':True});return
                 if path==['session'] and self.command=='POST':
                     role=b.get('role','manager')
@@ -223,6 +226,12 @@ class Handler(BaseHTTPRequestHandler):
                     if not bridge or not secrets.compare_digest(self.headers.get('X-Evidence-Bridge',''),bridge): raise APIError('Private evidence endpoint.',403)
                     result=attachments.route(db,user,path,self.command,b,sys.modules[__name__])
                 elif self.command=='GET' and path==['state']: result=state(db,user)
+                elif reporting:
+                    from urllib.parse import parse_qs, urlsplit
+                    query=parse_qs(urlsplit(self.path).query,keep_blank_values=True)
+                    if set(query)-{'week'} or len(query.get('week',[]))>1:
+                        raise APIError('Expected a single optional week parameter.')
+                    result=reports.weekly(db,user,query.get('week',[None])[0],sys.modules[__name__])
                 elif self.command=='POST' and path==['counts']:result=create_count(db,user,b)
                 elif self.command=='POST' and path==['imports']:result=import_rows(db,user,b)
                 elif len(path)>=2 and path[0]=='cases':

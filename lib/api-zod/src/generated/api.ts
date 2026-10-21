@@ -9,6 +9,64 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Manager and owner weekly count activity and as-of case backlog in Asia/Kuala_Lumpur
+ */
+export const getWeeklyInventoryReportQueryWeekRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetWeeklyInventoryReportQueryParams = zod.object({
+  "week": zod.coerce.string().regex(getWeeklyInventoryReportQueryWeekRegExp).optional().describe('Monday date, YYYY-MM-DD; defaults to the current week')
+})
+
+export const GetWeeklyInventoryReportResponse = zod.object({
+  "weekStart": zod.string(),
+  "weekEnd": zod.string(),
+  "currentWeek": zod.string(),
+  "timezone": zod.string(),
+  "asOf": zod.string(),
+  "generatedAt": zod.string(),
+  "isFinal": zod.boolean(),
+  "snapshotKind": zod.enum(['live', 'saved']),
+  "totals": zod.object({
+  "countSubmissions": zod.number().int(),
+  "productsCounted": zod.number().int(),
+  "newCases": zod.number().int(),
+  "closedCases": zod.number().int(),
+  "openingBacklog": zod.number().int(),
+  "closingBacklog": zod.number().int(),
+  "overdueCases": zod.number().int()
+}),
+  "decisions": zod.object({
+  "approved": zod.number().int(),
+  "overridden": zod.number().int(),
+  "rejected": zod.number().int()
+}),
+  "daily": zod.array(zod.object({
+  "date": zod.string(),
+  "counts": zod.number().int(),
+  "newCases": zod.number().int(),
+  "closedCases": zod.number().int(),
+  "future": zod.boolean()
+})),
+  "discrepancies": zod.object({
+  "shortageUnits": zod.number().int(),
+  "surplusUnits": zod.number().int()
+}),
+  "followUps": zod.array(zod.object({
+  "id": zod.string(),
+  "product": zod.string(),
+  "status": zod.enum(['pending_approval', 'needs_review', 'manual_review']),
+  "createdAt": zod.string(),
+  "ageDays": zod.number().int(),
+  "recorded": zod.number().int(),
+  "counted": zod.number().int(),
+  "difference": zod.number().int()
+})),
+  "notes": zod.array(zod.string())
+})
+
+
+/**
  * @summary Authorize an open-case upload using the existing cookie session
  */
 export const RequestCaseEvidenceUploadParams = zod.object({

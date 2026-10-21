@@ -24,12 +24,14 @@ import type {
   DemoSessionInput,
   EvidenceUploadInput,
   EvidenceUploadTicket,
+  GetWeeklyInventoryReportParams,
   HealthStatus,
   InventoryCountInput,
   InventoryDecisionInput,
   InventoryImportInput,
   InventoryPayload,
-  OpenCaseEvidenceParams
+  OpenCaseEvidenceParams,
+  WeeklyInventoryReport
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -58,6 +60,90 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetWeeklyInventoryReportUrl = (params?: GetWeeklyInventoryReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/backend/reports/weekly?${stringifiedParams}` : `/api/backend/reports/weekly`
+}
+
+/**
+ * @summary Manager and owner weekly count activity and as-of case backlog in Asia/Kuala_Lumpur
+ */
+export const getWeeklyInventoryReport = async (params?: GetWeeklyInventoryReportParams, options?: Parameters<typeof customFetch>[1]): Promise<WeeklyInventoryReport> => {
+
+  return customFetch<WeeklyInventoryReport>(getGetWeeklyInventoryReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWeeklyInventoryReportQueryKey = (params?: GetWeeklyInventoryReportParams,) => {
+    return [
+    `/api/backend/reports/weekly`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWeeklyInventoryReportQueryOptions = <TData = Awaited<ReturnType<typeof getWeeklyInventoryReport>>, TError = ErrorType<void>>(params?: GetWeeklyInventoryReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklyInventoryReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWeeklyInventoryReportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeeklyInventoryReport>>> = ({ signal }) => getWeeklyInventoryReport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWeeklyInventoryReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWeeklyInventoryReportQueryResult = NonNullable<Awaited<ReturnType<typeof getWeeklyInventoryReport>>>
+export type GetWeeklyInventoryReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Manager and owner weekly count activity and as-of case backlog in Asia/Kuala_Lumpur
+ */
+
+export function useGetWeeklyInventoryReport<TData = Awaited<ReturnType<typeof getWeeklyInventoryReport>>, TError = ErrorType<void>>(
+ params?: GetWeeklyInventoryReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeeklyInventoryReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWeeklyInventoryReportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getRequestCaseEvidenceUploadUrl = (id: string,) => {
 

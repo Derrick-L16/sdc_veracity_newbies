@@ -12,6 +12,7 @@ import { HistoryView } from '@/components/screens/history-view'
 import { InboxFramesView } from '@/components/screens/inbox-frames-view'
 import { InboxView } from '@/components/screens/inbox-view'
 import { PassportView } from '@/components/screens/passport-view'
+import { WeeklyReportView } from '@/components/screens/weekly-report-view'
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -49,6 +50,7 @@ function Router() {
         <Route path="/account"><Titled title="Account · Veracity"><AccountView /></Titled></Route>
         <Route path="/cases/:id" component={CasePage} />
         <Route path="/history"><Titled title="History · Veracity"><HistoryView /></Titled></Route>
+        <Route path="/reports"><Titled title="Weekly summary · Veracity"><WeeklyReportView /></Titled></Route>
         <Route path="/history/:id" component={PassportPage} />
         <Route>
           <Titled title="Page not found · Veracity">
