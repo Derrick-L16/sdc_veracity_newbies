@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './isolated-test'
 import { enterDemo, loginDemo } from './demo-helpers'
 
 test('demo entry, change role, persisted sessions and unsaved work', async ({ page }) => {
@@ -71,13 +71,21 @@ test('demo entry, change role, persisted sessions and unsaved work', async ({ pa
   expect(errors).toEqual([])
 })
 
-test('deep links, safe destinations, mobile and session expiry', async ({ page }) => {
+test('deep links, safe destinations, mobile and session expiry', async ({ page, baseURL }) => {
   await loginDemo(page, 'manager')
-  const state = await (await page.request.get('/api/backend/state')).json()
-  const id = state.cases[0]?.id
+  const headers = { Origin: baseURL! }
+  const productId = `deep-link-${Date.now()}`
+  expect((await page.request.post('/api/backend/imports', {
+    data: { kind: 'products', rows: [{ id: productId, name: productId, recorded: 10 }] }, headers,
+  })).ok()).toBe(true)
+  const count = await page.request.post('/api/backend/counts', {
+    data: { productId, counted: 8 }, headers,
+  })
+  expect(count.ok()).toBe(true)
+  const { id } = await count.json()
   expect(id).toBeTruthy()
   expect((await page.request.post('/api/backend/session/end', {
-    data: {}, headers: { Origin: 'http://localhost' },
+    data: {}, headers,
   })).ok()).toBe(true)
   await page.goto(`/cases/${id}?v=1`)
   await expect(page).toHaveURL(/\/login\?next=/)
@@ -85,11 +93,11 @@ test('deep links, safe destinations, mobile and session expiry', async ({ page }
   await expect(page).toHaveURL(new RegExp(`/cases/${id}\\?v=1$`))
   await page.reload()
   await expect(page).toHaveURL(new RegExp(`/cases/${id}\\?v=1$`))
-  await page.request.post('/api/backend/session/end', { data: {}, headers: { Origin: 'http://localhost' } })
+  await page.request.post('/api/backend/session/end', { data: {}, headers })
   await page.goto('/login?next=https%3A%2F%2Fexample.com')
   await enterDemo(page, 'staff')
   await expect(page).toHaveURL(/\/work$/)
-  await page.request.post('/api/backend/session/end', { data: {}, headers: { Origin: 'http://localhost' } })
+  await page.request.post('/api/backend/session/end', { data: {}, headers })
   // Polling notices a session revoked in another tab without restoring Manager.
   await expect(page).toHaveURL(/\/login(?:\?|$)/, { timeout: 15000 })
   await page.setViewportSize({ width: 390, height: 844 })

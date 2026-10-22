@@ -52,7 +52,7 @@ Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 - `artifacts/api-server/backend/` — original Python business logic, SQLite database and backend tests.
 - `artifacts/api-server/src/routes/backend.ts` — replacement for the Next API proxy, preserving `/api/backend/*`, browser-origin checks and HttpOnly session cookies.
 - `lib/api-spec/openapi.yaml` — transport contract. Domain payloads and validation remain owned by the imported backend and frontend domain types.
-- `.migration-backup/` — untouched imported reference, not used at runtime or deployed.
+- `scripts/post-merge.sh` — configured in `.replit` to run dependency/setup steps after merges; keep this folder. `scripts/src/hello.ts` is a scaffold example, not application logic.
 - `docs/` — imported product and backend documentation; references to Next describe the original architecture, superseded by the paths above.
 
 ## Persistence and scope decisions
@@ -129,8 +129,8 @@ Development data includes earlier browser-test records; it is not business data.
 - `pnpm exec playwright test tests/weekly-report.spec.ts` — reads existing development records (no synthetic products/counts), verifies report totals, prior-week query forwarding and frozen reloads, case links, mobile layout, staff/owner permissions and failure/retry. Historical GETs save the requested weekly snapshot.
 - `pnpm test` — Python backend tests (temporary SQLite databases) plus file-content verification tests; includes permissions, transactional rollback, stale evidence/documents, idempotency, historical snapshots and HTTP sessions.
 - `pnpm run typecheck` — full workspace check.
-- `pnpm test:e2e` — Playwright against running workflows through `localhost:80`: CSV import, staff count, manager approval, persisted Passport, owner restrictions, direct routes and mobile navigation. Creates uniquely named `Migration test migration-*` inventory records in development; no existing records are altered.
-- The focused evidence browser test also creates uniquely named `Evidence test evidence-*` and `Manager evidence test evidence-*` development records and private fixture documents. It verifies real image/PDF upload, a lost-finalize-response retry, stale dialog rejection, spoofed/oversized files, roles, historical views and closed Passport access. Fixtures are generated in memory, not committed.
+- `pnpm test:e2e` — Playwright starts a dedicated loopback gateway, API/Python backend, temporary SQLite DB and local evidence directory. It never targets the running walkthrough instance. `PLAYWRIGHT_BASE_URL` is rejected; all specs must import `test` from `tests/isolated-test.ts`, whose automatic fixture verifies the run identity before any test starts.
+- Migration/evidence test records and files exist only in that temporary instance, which is removed on teardown. Read-only, WAL-consistent snapshots verify the demo database's business tables remain unchanged before/after the run; no user data is reset or cleaned. The suite covers CSV import, counts, approval, Passport, documents/retry/stale-review/roles/history and weekly reports. See README for standalone test prerequisites.
 - Screenshots/traces go to ignored `generated-artifacts/`.
 - Playwright uses the Replit-provided Chromium when present; elsewhere install its browser with `pnpm exec playwright install chromium`.
 - Registered validation commands: `test`, `typecheck`, `app-test`.

@@ -3,6 +3,7 @@ import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import { logger } from "./logger";
 import { randomBytes } from "node:crypto";
+import { assertTestIsolation } from "./test-isolation";
 
 // Per-process capability, never sent to the browser or logged.
 export const evidenceBridge = randomBytes(32).toString("hex");
@@ -16,6 +17,7 @@ export function getBackendUrl() {
 }
 
 export async function startBackend() {
+  assertTestIsolation();
   // Allocate a private port without exposing the original SQLite service publicly.
   const port = await new Promise<number>((resolve, reject) => {
     const reservation = createServer();

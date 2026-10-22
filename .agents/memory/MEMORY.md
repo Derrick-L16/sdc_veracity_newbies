@@ -6,3 +6,4 @@
 - [Merge state rechecks](merge-state-rechecks.md) — pending merge/index state has changed between turns; verify current state again before acting on approval.
 - [Product scope](product-scope.md) — AI is a future feature, not part of the current implementation or testing acceptance.
 - [Git provider authorization](git-provider-authorization.md) — a healthy connection record does not guarantee GitHub push access; Git Providers settings may require reconnection.
+- [Demo data hygiene](demo-data-hygiene.md) — preserve a user-imported demo dataset; mutating browser tests must not pollute the walkthrough database.

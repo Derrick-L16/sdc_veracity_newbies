@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "./isolated-test";
+import type { Page } from "@playwright/test";
 import { changeDemoRole, enterDemo, loginDemo } from './demo-helpers';
 
 async function switchRole(page: Page, from: string, to: string, home: string) {
@@ -76,11 +77,11 @@ test("role homes, owner oversight and preserved deep links use real records", as
   expect(errors).toEqual([]);
 });
 
-test("decision filters use decision time in MYT and preserve accurate outcomes", async ({ page }) => {
+test("decision filters use decision time in MYT and preserve accurate outcomes", async ({ page, baseURL }) => {
   // Browser-only fixtures exercise all outcomes without modifying inventory,
   // decisions or any other persistent development data.
   const session = await page.request.post("/api/backend/session", {
-    data: { role: "owner" }, headers: { Origin: "http://localhost" },
+    data: { role: "owner" }, headers: { Origin: baseURL! },
   });
   expect(session.ok()).toBe(true);
   const make = (id: string, action: string, at: string, finalStock: number | undefined, by = "Manager A") => ({

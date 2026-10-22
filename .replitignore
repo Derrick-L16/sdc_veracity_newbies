@@ -1,3 +1,4 @@
+/artifacts/api-server/generated-artifacts/
 # The format of this file is identical to `.dockerignore`.
 # It is used to reduce the size of deployed images to make the process of publishing faster.
 
@@ -7,6 +8,5 @@
 **/*.sqlite3
 **/*.sqlite3-wal
 **/*.sqlite3-shm
-.migration-backup
 generated-artifacts
 .veracity-local
