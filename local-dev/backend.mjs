@@ -6,6 +6,7 @@ import { prepareNativeBinaries } from './native.mjs'
 try {
   const apiPort = port(process.env.LOCAL_API_PORT, 8000, 'LOCAL_API_PORT')
   const webPort = port(process.env.LOCAL_WEB_PORT, 3000, 'LOCAL_WEB_PORT')
+  const vitePort = port(process.env.LOCAL_VITE_PORT, 5173, 'LOCAL_VITE_PORT')
   await freePort(apiPort)
   const py = python()
   prepareNativeBinaries(root)
@@ -23,6 +24,8 @@ try {
     VERACITY_DB: path.join(dataDir, 'veracity.sqlite3'),
     PYTHON_EXECUTABLE: py.command,
     VERACITY_PYTHON_ARGS: JSON.stringify(py.args),
-    APP_ORIGIN: `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
+    // The gateway port is preferred, but Vite's own address (printed by Vite)
+    // also proxies /api here, so trust it too instead of failing the login.
+    APP_ORIGIN: [webPort, vitePort].flatMap(p => [`http://localhost:${p}`, `http://127.0.0.1:${p}`]).join(','),
   })
 } catch (error) { fail(error) }
