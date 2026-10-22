@@ -169,6 +169,44 @@ export interface InventoryImportInput {
   rows: InventoryPayload[];
 }
 
+export interface ProductInput {
+  /**
+     * @minLength 1
+     * @maxLength 4000
+     */
+  name: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  recorded: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  unit_cost?: number;
+  /** @maxLength 4000 */
+  note?: string;
+}
+
+export interface InventoryProduct {
+  id: string;
+  name: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  recorded: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  unit_cost: number;
+  /** @minimum 1 */
+  revision: number;
+  evidence_missing: boolean;
+}
+
 export interface InventoryCountInput {
   product: string;
   /**

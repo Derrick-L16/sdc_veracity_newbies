@@ -23,6 +23,9 @@ export interface MissingItem {
 export interface StockSummary {
   total: number
   counts: Record<SegmentKey, number>
+  matches: number
+  items: StockSummaryItem[]
+  updatedAt: string
   lastCount: string | null
   missing: {
     units: number
@@ -33,6 +36,17 @@ export interface StockSummary {
   }
   /** A count that has been started but not submitted yet. */
   inProgress?: { counted: number; total: number; by: string; startedAt: string }
+}
+
+export interface StockSummaryItem {
+  productId: string
+  name: string
+  recorded: number
+  counted: number | null
+  difference: number | null
+  status: 'matched' | 'difference' | 'not_counted'
+  caseId: string | null
+  evidenceMissing: boolean
 }
 
 export interface StaffProgress {

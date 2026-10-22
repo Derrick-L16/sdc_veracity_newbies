@@ -155,6 +155,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/InventoryPayload" }
+  /backend/products:
+    post:
+      operationId: createInventoryProduct
+      summary: Create one inventory product as staff or manager
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProductInput" }
+      responses:
+        "200":
+          description: Created inventory product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryProduct" }
+        "400": { description: Invalid product fields }
+        "403": { description: Owner is read-only }
+        "409": { description: Product name already exists }
   /backend/counts:
     post:
       operationId: submitInventoryCount
@@ -331,6 +349,24 @@ components:
           minItems: 1
           maxItems: 10000
           items: { $ref: "#/components/schemas/InventoryPayload" }
+    ProductInput:
+      type: object
+      required: [name, recorded]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 4000 }
+        recorded: { type: integer, minimum: 0, maximum: 1000000000 }
+        unit_cost: { type: number, minimum: 0, maximum: 1000000000, default: 0 }
+        note: { type: string, maxLength: 4000 }
+    InventoryProduct:
+      type: object
+      required: [id, name, recorded, unit_cost, revision, evidence_missing]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        recorded: { type: integer, minimum: 0, maximum: 1000000000 }
+        unit_cost: { type: number, minimum: 0, maximum: 1000000000 }
+        revision: { type: integer, minimum: 1 }
+        evidence_missing: { type: boolean }
     InventoryCountInput:
       type: object
       required: [product, recorded, counted]

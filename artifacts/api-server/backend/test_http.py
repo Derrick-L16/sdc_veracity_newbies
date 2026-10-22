@@ -77,5 +77,22 @@ class HTTPTests(unittest.TestCase):
             unsigned=urllib.request.Request(self.base+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json','X-Evidence-Bridge':'private-test-bridge'})
             with self.assertRaises(urllib.error.HTTPError) as err:no_cookie.open(unsigned,timeout=5)
             self.assertEqual(err.exception.code,401)
+    def test_product_create_permissions_duplicates_and_live_summary(self):
+        self.call('session',{'role':'manager'})
+        created=self.call('products',{'name':'Oat milk','recorded':8,'unit_cost':4.25,'note':'New delivery'})
+        self.assertTrue(created['evidence_missing'])
+        self.call('session',{'role':'staff'})
+        with self.assertRaises(urllib.error.HTTPError) as duplicate:
+            self.call('products',{'name':'OAT MILK','recorded':8})
+        self.assertEqual(duplicate.exception.code,409)
+        second=self.call('products',{'name':'Tea','recorded':3})
+        self.assertEqual(second['name'],'Tea')
+        state=self.call('state')
+        self.assertEqual(len(state['products']),2)
+        self.assertTrue(any(item['productId']==second['id'] and item['status']=='not_counted' for item in state['summary']['items']))
+        self.call('session',{'role':'owner'})
+        with self.assertRaises(urllib.error.HTTPError) as forbidden:
+            self.call('products',{'name':'Owner product','recorded':1})
+        self.assertEqual(forbidden.exception.code,403)
 
 if __name__=='__main__':unittest.main()

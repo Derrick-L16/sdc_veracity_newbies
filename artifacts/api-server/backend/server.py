@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 import os
 import secrets
 import sqlite3
@@ -42,6 +43,9 @@ def init():
         ''')
         attachments.init(db)
         reports.init(db)
+        product_columns = {row['name'] for row in db.execute('PRAGMA table_info(products)')}
+        if 'evidence_missing' not in product_columns:
+            db.execute('ALTER TABLE products ADD COLUMN evidence_missing INTEGER NOT NULL DEFAULT 0')
 
 def audit(db,user,action,cid,detail): db.execute('INSERT INTO audit(at,actor,action,case_id,detail) VALUES(?,?,?,?,?)',(now(),user['name'],action,cid,dump(detail)))
 def integer(value, label, minimum=0):
@@ -115,6 +119,25 @@ def create_count(db,user,b):
     db.execute('INSERT INTO cases VALUES(?,?,?)',(cid,p['id'],dump(c))); audit(db,user,'count_submitted',cid,{'counted':counted})
     return c
 
+def create_product(db,user,b):
+    require(user,('staff','manager'))
+    name=text(b.get('name'),'Product name')
+    recorded=integer(b.get('recorded'),'Recorded stock')
+    cost=b.get('unit_cost',0)
+    if isinstance(cost,bool) or not isinstance(cost,(int,float)) or not math.isfinite(cost) or not 0<=cost<=1000000000:
+        raise APIError('Unit cost must be a nonnegative finite number.')
+    note=b.get('note','')
+    if not isinstance(note,str) or len(note)>4000:
+        raise APIError('Note must be 4000 characters or fewer.')
+    if db.execute('SELECT 1 FROM products WHERE lower(name)=lower(?)',(name,)).fetchone():
+        raise APIError('A product with this name already exists. Count it instead.',409)
+    product_id=secrets.token_hex(8).upper()
+    db.execute('INSERT INTO products(id,name,recorded,unit_cost,evidence_missing) VALUES(?,?,?,?,1)',(product_id,name,recorded,float(cost)))
+    product=dict(db.execute('SELECT * FROM products WHERE id=?',(product_id,)).fetchone())
+    product['evidence_missing']=bool(product['evidence_missing'])
+    audit(db,user,'product_created',None,{'productId':product_id,'name':name,'recorded':recorded,'unit_cost':float(cost),'note':note})
+    return product
+
 def decision(db,user,c,b):
     require(user,('manager',)); pending(c)
     v=c['versions'][-1]
@@ -173,9 +196,11 @@ def import_rows(db,user,b):
 
 def state(db,user):
     products=[dict(p) for p in db.execute('SELECT * FROM products ORDER BY name')]
+    for product in products:
+        product['evidence_missing']=bool(product.get('evidence_missing',0))
     cases=[json.loads(r['body']) for r in db.execute('SELECT body FROM cases ORDER BY rowid DESC')]
     if user['role']=='staff': cases=[c for c in cases if c['createdBy']==user['name']]
-    counts={'verified':0,'awaiting':0,'attention':0,'not_counted':0};items=[];last=None; matched=0; differ=0
+    counts={'verified':0,'awaiting':0,'attention':0,'not_counted':0};items=[];last=None; matched=0; differ=0;summary_items=[]
     for p in products:
         own=db.execute('SELECT * FROM counts WHERE product_id=? '+('AND actor=? ' if user['role']=='staff' else '')+'ORDER BY id DESC LIMIT 1', (p['id'],user['name']) if user['role']=='staff' else (p['id'],)).fetchone()
         latest=next((c for c in cases if c['productId']==p['id']),None)
@@ -184,13 +209,27 @@ def state(db,user):
             key='awaiting' if latest['status']=='pending_approval' else 'attention';differ+=1
             units=max(0,latest['recorded']-latest['counted']);v=latest['versions'][-1]
             items.append({'name':p['name'],'units':units,'value':units*p['unit_cost'],'status':latest['status'],'caseId':latest['id'],'explainedValue':min(units,v['explained'])*p['unit_cost']})
+            counted=latest['counted'];recorded=latest['recorded'];case_id=latest['id']
         elif latest and latest['status']=='completed': key='verified';matched+=1
         elif own and own['counted']==p['recorded']:key='verified';matched+=1
         elif own:key='attention';differ+=1
         else:key='not_counted'
+        if latest and latest['status']=='completed':
+            counted=recorded=p['recorded'];case_id=None
+        elif not (latest and latest['status'] in OPEN) and own:
+            counted=own['counted'];recorded=p['recorded'];case_id=None
+        elif not (latest and latest['status'] in OPEN):
+            counted=None;recorded=p['recorded'];case_id=None
+        row_status='not_counted' if counted is None else 'matched' if counted==recorded else 'difference'
+        summary_items.append({
+            'productId':p['id'],'name':p['name'],'recorded':recorded,'counted':counted,
+            'difference':None if counted is None else counted-recorded,'status':row_status,
+            'caseId':case_id,'evidenceMissing':bool(p.get('evidence_missing',0)),
+        })
         counts[key]+=1
+    summary_items.sort(key=lambda item:({'difference':0,'not_counted':1,'matched':2}[item['status']],item['name'].casefold()))
     value=sum(i['value'] for i in items); exp=sum(i.pop('explainedValue') for i in items)
-    return {'user':user,'products':products,'cases':cases,'summary':{'total':len(products),'counts':counts,'lastCount':last,'missing':{'units':sum(i['units'] for i in items),'value':value,'explained':exp,'unexplained':value-exp,'items':items}},'progress':{'counted':matched+differ,'total':len(products),'matched':matched,'differ':differ,'lastSubmitted':last}}
+    return {'user':user,'products':products,'cases':cases,'summary':{'total':len(products),'counts':counts,'matches':sum(item['status']=='matched' for item in summary_items),'items':summary_items,'updatedAt':now(),'lastCount':last,'missing':{'units':sum(i['units'] for i in items),'value':value,'explained':exp,'unexplained':value-exp,'items':items}},'progress':{'counted':matched+differ,'total':len(products),'matched':matched,'differ':differ,'lastSubmitted':last}}
 
 class Handler(BaseHTTPRequestHandler):
     def respond(self,status,payload,cookie=None):
@@ -232,6 +271,7 @@ class Handler(BaseHTTPRequestHandler):
                     if set(query)-{'week'} or len(query.get('week',[]))>1:
                         raise APIError('Expected a single optional week parameter.')
                     result=reports.weekly(db,user,query.get('week',[None])[0],sys.modules[__name__])
+                elif self.command=='POST' and path==['products']:result=create_product(db,user,b)
                 elif self.command=='POST' and path==['counts']:result=create_count(db,user,b)
                 elif self.command=='POST' and path==['imports']:result=import_rows(db,user,b)
                 elif len(path)>=2 and path[0]=='cases':

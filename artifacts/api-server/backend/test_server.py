@@ -72,7 +72,40 @@ class WorkflowTests(unittest.TestCase):
     def test_no_difference_is_saved(self):
         with s.connect() as db:
             self.assertEqual(s.create_count(db,self.staff,{'product':'Drink','counted':50}),{'matched':True})
-            self.assertEqual(s.state(db,self.manager)['summary']['counts']['verified'],1)
+            summary=s.state(db,self.manager)['summary']
+            self.assertEqual(summary['counts']['verified'],1)
+            self.assertEqual(summary['matches'],1)
+            row=next(item for item in summary['items'] if item['productId']=='A')
+            self.assertEqual((row['counted'],row['recorded'],row['difference'],row['status']),(50,50,0,'matched'))
+    def test_stock_summary_rows_use_open_case_counts_and_prioritize_differences(self):
+        case=self.count()
+        with s.connect() as db:
+            summary=s.state(db,self.manager)['summary']
+            row=next(item for item in summary['items'] if item['productId']=='A')
+            self.assertEqual((row['counted'],row['recorded'],row['difference'],row['status'],row['caseId']),(43,50,-7,'difference',case['id']))
+            self.assertEqual(summary['items'][0]['status'],'difference')
+            self.assertIsNotNone(summary['updatedAt'])
+    def test_product_creation_is_role_checked_audited_and_visible_in_summary(self):
+        with s.connect() as db:
+            product=s.create_product(db,self.staff,{'name':'New tea','recorded':12,'unit_cost':2.5,'note':'Opening stock'})
+            self.assertEqual(product['recorded'],12)
+            self.assertTrue(product['evidence_missing'])
+            summary=s.state(db,self.manager)['summary']
+            row=next(item for item in summary['items'] if item['productId']==product['id'])
+            self.assertEqual(row['status'],'not_counted')
+            self.assertEqual(row['recorded'],12)
+            event=db.execute("SELECT action,detail FROM audit WHERE action='product_created'").fetchone()
+            self.assertEqual(event['action'],'product_created')
+            self.assertIn('Opening stock',event['detail'])
+            with self.assertRaises(s.APIError) as error:
+                s.create_product(db,self.manager,{'name':'new TEA','recorded':0})
+            self.assertEqual(error.exception.status,409)
+            for bad_cost in (-1, float('inf'), True, '2.5'):
+                with self.subTest(unit_cost=bad_cost), self.assertRaises(s.APIError):
+                    s.create_product(db,self.manager,{'name':f'Invalid {str(bad_cost)}','recorded':0,'unit_cost':bad_cost})
+            with self.assertRaises(s.APIError) as forbidden:
+                s.create_product(db,s.USERS['owner'],{'name':'Owner product','recorded':1})
+            self.assertEqual(forbidden.exception.status,403)
     def test_concurrent_decisions_only_commit_once(self):
         self.movements();c=self.count()
         def run(_):
