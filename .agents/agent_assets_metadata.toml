@@ -98,3 +98,17 @@ mtime_ms = 1792666415224
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:f80cf8f8-14e4-482a-816f-640b4ea84a3b/2ed577c6-96bf-48ed-8c6e-ddc44f0eeeeb/6d984375-d17b-45a5-ba92-310fe524c177"
 storage_version_token = "1792666546100655"
 content_type = "text/csv"
+
+[[outputs]]
+id = "M3Jt3aY-MX-wBayY__3em"
+uri = "file://generated-artifacts/veracity.bundle"
+type = "unspecified"
+title = "Veracity Git bundle"
+description = "包含 main 分支完整提交历史，最新提交 b969cc8。下载后可在自己的电脑合并并推送到 GitHub。"
+logical_id = "91fd5a65-3500-44fd-b840-40c3e203153d"
+content_hash = "sha256:d29e1e71ec4c53e689a65f52f4ae28c5676da45cf34d52e17ec8f56fbc38dd80"
+size = 925567
+mtime_ms = 1792684555367
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:8add5b81-76dc-4a0a-83ae-d83627bdf34e/91fd5a65-3500-44fd-b840-40c3e203153d/c42eb984-9f13-408b-8d35-a61549fb149d"
+storage_version_token = "1792684564005774"
+content_type = "application/octet-stream"
