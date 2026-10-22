@@ -46,9 +46,9 @@ export function DataImport() {
   return <Card className="flex flex-col gap-4 p-5">
     <h2 className="text-h3 font-semibold">Connected records</h2>
     <p className="text-body-sm text-fg-secondary">Import your inventory first, then unposted movements. Imports add records; they never overwrite stock. This is a local CSV connector, not a live Orbyte connection.</p>
-    <select aria-label="Import type" className="h-12 rounded-[12px] border border-line bg-elevated px-4" value={kind} onChange={e => setKind(e.target.value)}><option value="products">Inventory products</option><option value="movements">Unposted stock movements</option></select>
+    <select aria-label="Import type" className="h-12 rounded-[12px] border border-line bg-elevated px-4 text-white" value={kind} onChange={e => setKind(e.target.value)}><option value="products">Inventory products</option><option value="movements">Unposted stock movements</option></select>
     <p className="break-all text-caption text-fg-secondary">{kind === 'products' ? 'Headers: id,name,recorded,unit_cost' : 'Headers: id,product_id,kind,quantity,occurred_at,conflict_ref'}</p>
-    <input type="file" accept=".csv,text/csv" aria-label="CSV records" onChange={e => setFile(e.target.files?.[0] || null)} className="text-body-sm" />
+    <input type="file" accept=".csv,text/csv" aria-label="CSV records" onChange={e => setFile(e.target.files?.[0] || null)} className="text-body-sm text-white" />
     <Button disabled={!file || busy} onClick={upload}>{busy ? 'Importing…' : 'Import records'}</Button>
   </Card>
 }

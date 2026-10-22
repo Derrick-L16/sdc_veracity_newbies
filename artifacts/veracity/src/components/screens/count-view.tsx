@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ArrowDown, ArrowRight, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, FileText, Loader2, Minus, Paperclip, Plus, Send, X } from 'lucide-react'
+import { CheckCircle2, ChevronDown, CircleMinus, CirclePlus, FileText, Loader2, Minus, Paperclip, Plus, Send, X } from 'lucide-react'
 import { Link, useLocation } from 'wouter'
 import { toast } from 'sonner'
 import { useApp } from '@/components/app/app-provider'
@@ -242,7 +242,7 @@ export function CountView() {
           <div className="flex flex-col gap-2">
             <Label htmlFor={ids.product} className="text-body-sm font-medium">Product</Label>
             <div className="relative">
-              <select id={ids.product} value={productId} onChange={(e) => setProductId(e.target.value)} aria-invalid={productMissing} aria-describedby={productMissing ? `${ids.product}-error` : undefined} className="h-12 w-full appearance-none rounded-[12px] border border-line bg-elevated px-4 pr-10 text-body text-fg outline-none focus-visible:ring-2 focus-visible:ring-accent-text aria-invalid:border-danger">
+              <select id={ids.product} value={productId} onChange={(e) => setProductId(e.target.value)} aria-invalid={productMissing} aria-describedby={productMissing ? `${ids.product}-error` : undefined} className="h-12 w-full appearance-none rounded-[12px] border border-line bg-elevated px-4 pr-10 text-body text-white outline-none focus-visible:ring-2 focus-visible:ring-accent-text aria-invalid:border-danger">
                 <option value="">Choose a product</option>
                 {products.map((item) => <option key={item.id} value={item.id}>{item.name}{item.evidence_missing ? ' · Evidence missing' : ''}</option>)}
               </select>
@@ -340,11 +340,10 @@ function StockSummaryPanel({ items, matches, total, updatedAt, loading, error, s
         <p className="hidden shrink-0 text-right text-caption text-fg-tertiary lg:block"><span className="block">Last updated</span><time>{updated}</time></p>
       </div>
       {loading ? <div aria-busy="true" aria-label="Loading stock summary" className="flex flex-col gap-4">
-        {[1, 2, 3].map(i => <div key={i} className="grid min-h-[60px] grid-cols-[36px_1fr_76px_16px] grid-rows-[22px_20px] items-center gap-x-3 gap-y-1 rounded-[10px] px-2 py-1.5">
+        {[1, 2, 3].map(i => <div key={i} className="grid min-h-[60px] grid-cols-[36px_1fr_76px] grid-rows-[22px_20px] items-center gap-x-3 gap-y-1 rounded-[10px] px-2 py-1.5">
           <span className="row-span-2 size-9 animate-pulse rounded-full bg-elevated" />
           <span className="h-4 animate-pulse rounded bg-elevated" />
           <span className="col-start-3 row-start-1 h-4 animate-pulse rounded bg-elevated" />
-          <span className="row-span-2 size-4 animate-pulse rounded bg-elevated" />
           <span className="col-start-2 col-span-2 row-start-2 h-3 animate-pulse rounded bg-elevated" />
         </div>)}
       </div>
@@ -358,7 +357,7 @@ function StockSummaryPanel({ items, matches, total, updatedAt, loading, error, s
               : <ul className={cn('max-h-[min(60vh,480px)] flex-col gap-4 overflow-y-auto pr-1', compactOpen ? 'flex' : 'hidden lg:flex')} aria-label="Products counted vs recorded">
                 {visible.map(item => <SummaryRow key={item.productId} item={item} selected={item.productId === selectedId} pulse={item.productId === updatedProductId} />)}
               </ul>}
-            {role !== 'staff' && <Link href="/reports" className="mt-1 min-h-11 self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">View all {total} products <ArrowRight className="inline size-4" aria-hidden="true" /></Link>}
+            {role !== 'staff' && <Link href="/reports" className="mt-1 min-h-11 self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">View all {total} products</Link>}
           </>}
     </Card>
   )
@@ -374,21 +373,21 @@ function SummaryRow({ item, selected, pulse }: { item: StockSummaryItem; selecte
     : difference === 0
       ? <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold leading-5 text-success"><CheckCircle2 className="size-4" aria-hidden="true" />Match</span>
       : <span className={cn('flex flex-col items-end text-right text-[14px] font-semibold leading-5', difference < 0 ? 'text-danger' : 'text-accent-text')}>
-          <span className="inline-flex items-center gap-1.5">{difference < 0 ? <ArrowDown className="size-4" aria-hidden="true" /> : <ArrowUp className="size-4 text-fg-secondary" aria-hidden="true" />}{difference < 0 ? '−' : '+'}{percent}%</span>
+          <span className="inline-flex items-center gap-1.5">{difference < 0 ? <CircleMinus className="size-4" aria-hidden="true" /> : <CirclePlus className="size-4 text-fg-secondary" aria-hidden="true" />}{difference < 0 ? '−' : '+'}{percent}%</span>
           <span className="text-[11px] font-normal leading-4 text-fg-secondary">{difference < 0 ? '−' : '+'}{Math.abs(difference)} units</span>
         </span>
   return (
     <li>
-      <Link href={`/reports?product=${encodeURIComponent(item.productId)}`} title={item.name} aria-label={`${item.name}; ${item.counted === null ? 'not counted' : `${item.counted} counted of ${item.recorded} recorded`}; open in Summary`} className={cn('group grid min-h-[60px] grid-cols-[36px_minmax(0,1fr)_auto_16px] grid-rows-[22px_20px] items-center gap-x-3 gap-y-1 rounded-[10px] border-l-2 px-2 py-1.5 transition-colors hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent-text', selected ? 'border-l-accent-fill bg-elevated' : 'border-l-transparent', pulse && 'count-summary-row-pulse')} data-testid={`link-summary-product-${item.productId}`} data-count-pulse={pulse || undefined}>
+      <Link href={`/reports?product=${encodeURIComponent(item.productId)}`} title={item.name} aria-label={`${item.name}; ${item.counted === null ? 'not counted' : `${item.counted} counted of ${item.recorded} recorded`}; open in Summary`} className={cn('group grid min-h-[60px] grid-cols-[36px_minmax(0,1fr)_auto] grid-rows-[22px_20px] items-center gap-x-3 gap-y-1 rounded-[12px] border-l-2 px-2.5 py-1.5 transition-all duration-200 hover:bg-elevated/80 focus-visible:outline-2 focus-visible:outline-accent-text', selected ? 'border-l-accent-fill bg-elevated/70 shadow-sm' : 'border-l-transparent bg-surface/30', pulse && 'count-summary-row-pulse')} data-testid={`link-summary-product-${item.productId}`} data-count-pulse={pulse || undefined}>
         <span aria-hidden="true" className="row-span-2 flex size-9 items-center justify-center rounded-full bg-elevated text-body-sm font-semibold text-fg-secondary">{item.name.trim().charAt(0).toUpperCase()}</span>
         <span className="min-w-0 truncate text-[15px] font-medium leading-5" title={item.name}>{item.name}</span>
         <span className="col-start-3 row-start-1 flex items-center">{status}</span>
-        <ChevronRight className="row-span-2 col-start-4 row-start-1 size-4 text-fg-tertiary" aria-hidden="true" />
         <span className="col-start-2 col-span-2 row-start-2 flex min-w-0 items-center gap-2">
           <span className="num shrink-0 text-[13px] leading-5 text-fg-secondary">{item.counted === null ? `— / ${item.recorded}` : `${item.counted} / ${item.recorded}`}</span>
-          <span className="relative h-1 w-full min-w-8 overflow-visible rounded-full bg-elevated" role="progressbar" aria-label={`${item.name} counted stock`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
-            <span className="block h-full rounded-full bg-accent-fill" style={{ width: `${progress}%` }} />
-            {item.counted !== null && item.counted > item.recorded && <span aria-hidden="true" className="absolute right-0 top-1/2 h-2 w-px -translate-y-1/2 bg-accent-text" />}
+          <span className="relative h-2.5 w-full min-w-8 overflow-hidden rounded-full bg-elevated/75 shadow-inner ring-1 ring-inset ring-line/70" role="progressbar" aria-label={`${item.name} counted stock`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+            <span className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent-fill via-accent-text to-accent-fill shadow-[0_0_10px_color-mix(in_srgb,var(--accent-fill)_35%,transparent)] transition-[width] duration-500 ease-out" style={{ width: `${progress}%` }} />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-white/15" />
+            {item.counted !== null && item.counted > item.recorded && <span aria-hidden="true" className="absolute right-0 top-0 h-full w-0.5 bg-accent-text shadow-[0_0_6px_var(--accent-text)]" />}
           </span>
         </span>
       </Link>

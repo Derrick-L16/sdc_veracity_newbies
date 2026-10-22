@@ -135,7 +135,7 @@ function OwnerDecisions({ cases, error, refresh }: { cases: StockCase[]; error: 
           </label>
           <label className="flex flex-col gap-1.5 text-body-sm text-fg-secondary">
             Decided by
-            <select value={decider} onChange={(e) => setDecider(e.target.value)} className={cn(FIELD, 'border px-4 text-fg')} data-testid="select-decider">
+            <select value={decider} onChange={(e) => setDecider(e.target.value)} className={cn(FIELD, 'border px-4 text-white')} data-testid="select-decider">
               <option value="all">Anyone</option>
               {deciders.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>

@@ -106,7 +106,7 @@ export function CaseAttachments({ stockCase, viewed, historical = false, readOnl
         </div>
         <label htmlFor={`${fieldId}-description`} className="text-body-sm font-medium">Description (optional)</label>
         <textarea id={`${fieldId}-description`} value={description} maxLength={1000} disabled={busy} rows={2}
-          onChange={e => { setDescription(e.target.value); newAttempt() }} className={`rounded-lg border border-line bg-elevated p-3 text-body-sm ${descriptionClassName}`} />
+          onChange={e => { setDescription(e.target.value); newAttempt() }} className={`rounded-lg border border-line bg-elevated p-3 text-body-sm text-white ${descriptionClassName}`} />
         {busy && <progress aria-label="Evidence upload progress" max={100} value={progress} className="w-full" />}
         <p role="status" className="text-body-sm text-fg-secondary">{busy ? `${phase} ${progress}%` : saved ? 'Evidence saved for human review.' : ''}</p>
         {error && <p role="alert" className="break-words text-body-sm text-danger">{error}</p>}

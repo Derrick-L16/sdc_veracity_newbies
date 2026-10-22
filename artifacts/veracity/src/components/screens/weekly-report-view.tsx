@@ -125,7 +125,7 @@ function WeekPicker({ monday, isCurrent, onChange }: { monday: string; isCurrent
           min="2000-01-03"
           max={todayKL()}
           onChange={(e) => { if (e.target.value) onChange(normalizeWeek(e.target.value).week) }}
-          className="num bg-transparent text-body-sm text-fg outline-none [color-scheme:inherit]"
+          className="num bg-transparent text-body-sm text-white outline-none [color-scheme:inherit]"
         />
       </label>
       <Button variant="secondary" size="icon" aria-label="Next week" data-testid="button-next-week" disabled={isCurrent || nextIsFuture} onClick={() => onChange(next)}>
