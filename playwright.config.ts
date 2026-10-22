@@ -1,7 +1,20 @@
 import { defineConfig } from "@playwright/test";
-import { existsSync, globSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import path from "node:path";
 
-const systemChromium = [...globSync("/nix/store/*playwright-browsers*/chromium-*/chrome-linux/chrome")].find(existsSync);
+const storePath = "/nix/store";
+const browserStores = existsSync(storePath)
+  ? readdirSync(storePath, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name.includes("playwright-browsers"))
+      .map((entry) => path.join(storePath, entry.name))
+  : [];
+const systemChromium = browserStores
+  .flatMap((browserStore) =>
+    readdirSync(browserStore, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name.startsWith("chromium-"))
+      .map((entry) => path.join(browserStore, entry.name, "chrome-linux", "chrome")),
+  )
+  .find(existsSync);
 
 export default defineConfig({
   testDir: "./tests",
