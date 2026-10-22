@@ -16,7 +16,9 @@ Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 - `artifacts/veracity/src/` — preserved imported screens, components, styles and state provider; wouter replaces Next routing.
 - Other routes: `/inbox`, `/inbox/frames`, `/count`, `/account`, `/cases/:id`
   (including `?v=` assessment versions), `/history`, `/history/:id`, `/reports`.
-- Demo entry: without a valid session, `/` and protected routes go to `/login`,
+- Entry routing: `/` always goes to `/login`, even with an existing session.
+  `/login` never automatically redirects into the workspace; users select a role
+  and click Log in. Protected deep links without a valid session also go to login,
   outside the app shell. A required role dropdown and Log in create the
   existing HttpOnly demo session; there is no email/password or real identity.
   There is no automatic Manager login, including on 401 or backend failures.
@@ -31,8 +33,8 @@ Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
   ordinary reloads of explicit case, Passport or report links do not redirect.
   Expired sessions return to role selection; only known local deep links survive
   entry, with existing server-side role visibility still enforced.
-- Login intentionally has no role-responsibility list or large explanation panel;
-  only a small demo notice remains. Manager Inbox exposes Import records in a
+- Login intentionally has no role-responsibility list, explanation panel or
+  footer notice. Manager Inbox exposes Import records in a
   dialog, reusing the existing CSV import endpoint and role checks. Successful
   import clears the chosen file and shows confirmation; failure retains it for
   retry. While importing, closing and editing are blocked; unsaved CSV selections

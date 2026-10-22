@@ -85,7 +85,6 @@ export function DemoLoginView() {
           </form>
         </Card>
 
-        <p className="text-center text-caption text-fg-tertiary">Demo login — no email or password required.</p>
       </div>
     </main>
   )

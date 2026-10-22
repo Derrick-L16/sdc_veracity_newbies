@@ -16,7 +16,7 @@ import { OwnerDecisionsView } from '@/components/screens/owner-decisions-view'
 import { StaffWorkView } from '@/components/screens/staff-work-view'
 import { DemoLoginView } from '@/components/screens/demo-login-view'
 import { ErrorNotice } from '@/components/veracity/primitives'
-import { demoDestination, roleHome } from '@/lib/role-home'
+import { roleHome } from '@/lib/role-home'
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -54,7 +54,7 @@ function Router() {
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/"><RoleLanding /></Route>
+        <Route path="/"><Redirect to="/login" replace /></Route>
         <Route path="/work"><Titled title="My work · Veracity"><StaffWorkView /></Titled></Route>
         <Route path="/decisions"><Titled title="Decision overview · Veracity"><OwnerDecisionsView /></Titled></Route>
         <Route path="/inbox"><Titled title="Inbox · Veracity"><InboxView /></Titled></Route>
@@ -79,12 +79,12 @@ function Router() {
 }
 
 function DemoAccess() {
-  const { authenticated, loading, error, refresh, role } = useApp()
+  const { authenticated, loading, error, refresh } = useApp()
   const [location] = useLocation()
   const search = useSearch()
+  if (location === '/') return <Redirect to="/login" replace />
   if (location === '/login') {
-    if (authenticated && !loading) return <Redirect to={demoDestination(role, new URLSearchParams(search).get('next'))} replace />
-    return <Titled title="Demo login · Veracity"><DemoLoginView /></Titled>
+    return <Titled title="Login · Veracity"><DemoLoginView /></Titled>
   }
   if (loading) return <main className="flex min-h-dvh items-center justify-center bg-base"><p role="status">Loading your demo session…</p></main>
   if (!authenticated) {
