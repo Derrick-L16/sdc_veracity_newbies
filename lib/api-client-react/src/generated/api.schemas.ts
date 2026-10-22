@@ -5,10 +5,20 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export type WeeklyInventoryReportSnapshotKind = typeof WeeklyInventoryReportSnapshotKind[keyof typeof WeeklyInventoryReportSnapshotKind];
+export type InventorySummaryReportPeriod = typeof InventorySummaryReportPeriod[keyof typeof InventorySummaryReportPeriod];
 
 
-export const WeeklyInventoryReportSnapshotKind = {
+export const InventorySummaryReportPeriod = {
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  yearly: 'yearly',
+} as const;
+
+export type InventorySummaryReportSnapshotKind = typeof InventorySummaryReportSnapshotKind[keyof typeof InventorySummaryReportSnapshotKind];
+
+
+export const InventorySummaryReportSnapshotKind = {
   live: 'live',
   saved: 'saved',
 } as const;
@@ -29,8 +39,9 @@ export interface WeeklyInventoryDecisions {
   rejected: number;
 }
 
-export interface WeeklyInventoryDay {
-  date: string;
+export interface InventorySummaryBucket {
+  start: string;
+  end: string;
   counts: number;
   newCases: number;
   closedCases: number;
@@ -60,6 +71,40 @@ export interface WeeklyInventoryFollowUp {
   recorded: number;
   counted: number;
   difference: number;
+}
+
+export interface InventorySummaryReport {
+  period: InventorySummaryReportPeriod;
+  periodStart: string;
+  periodEnd: string;
+  currentPeriodStart: string;
+  timezone: string;
+  asOf: string;
+  generatedAt: string;
+  isFinal: boolean;
+  snapshotKind: InventorySummaryReportSnapshotKind;
+  totals: WeeklyInventoryTotals;
+  decisions: WeeklyInventoryDecisions;
+  buckets: InventorySummaryBucket[];
+  discrepancies: WeeklyInventoryDiscrepancies;
+  followUps: WeeklyInventoryFollowUp[];
+  notes: string[];
+}
+
+export type WeeklyInventoryReportSnapshotKind = typeof WeeklyInventoryReportSnapshotKind[keyof typeof WeeklyInventoryReportSnapshotKind];
+
+
+export const WeeklyInventoryReportSnapshotKind = {
+  live: 'live',
+  saved: 'saved',
+} as const;
+
+export interface WeeklyInventoryDay {
+  date: string;
+  counts: number;
+  newCases: number;
+  closedCases: number;
+  future: boolean;
 }
 
 export interface WeeklyInventoryReport {
@@ -248,6 +293,25 @@ export interface InventoryDecisionInput {
 export interface HealthStatus {
   status: string;
 }
+
+export type GetInventorySummaryReportParams = {
+period?: GetInventorySummaryReportPeriod;
+/**
+ * Any nonfuture date in the selected period, YYYY-MM-DD; defaults to today
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date?: string;
+};
+
+export type GetInventorySummaryReportPeriod = typeof GetInventorySummaryReportPeriod[keyof typeof GetInventorySummaryReportPeriod];
+
+
+export const GetInventorySummaryReportPeriod = {
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  yearly: 'yearly',
+} as const;
 
 export type GetWeeklyInventoryReportParams = {
 /**

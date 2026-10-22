@@ -24,6 +24,7 @@ import type {
   DemoSessionInput,
   EvidenceUploadInput,
   EvidenceUploadTicket,
+  GetInventorySummaryReportParams,
   GetWeeklyInventoryReportParams,
   HealthStatus,
   InventoryCountInput,
@@ -31,6 +32,7 @@ import type {
   InventoryImportInput,
   InventoryPayload,
   InventoryProduct,
+  InventorySummaryReport,
   OpenCaseEvidenceParams,
   ProductInput,
   WeeklyInventoryReport
@@ -62,6 +64,90 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetInventorySummaryReportUrl = (params?: GetInventorySummaryReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/backend/reports/summary?${stringifiedParams}` : `/api/backend/reports/summary`
+}
+
+/**
+ * @summary Daily, weekly, monthly or yearly inventory activity in Malaysia time
+ */
+export const getInventorySummaryReport = async (params?: GetInventorySummaryReportParams, options?: Parameters<typeof customFetch>[1]): Promise<InventorySummaryReport> => {
+
+  return customFetch<InventorySummaryReport>(getGetInventorySummaryReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInventorySummaryReportQueryKey = (params?: GetInventorySummaryReportParams,) => {
+    return [
+    `/api/backend/reports/summary`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetInventorySummaryReportQueryOptions = <TData = Awaited<ReturnType<typeof getInventorySummaryReport>>, TError = ErrorType<void>>(params?: GetInventorySummaryReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInventorySummaryReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInventorySummaryReportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInventorySummaryReport>>> = ({ signal }) => getInventorySummaryReport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInventorySummaryReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInventorySummaryReportQueryResult = NonNullable<Awaited<ReturnType<typeof getInventorySummaryReport>>>
+export type GetInventorySummaryReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Daily, weekly, monthly or yearly inventory activity in Malaysia time
+ */
+
+export function useGetInventorySummaryReport<TData = Awaited<ReturnType<typeof getInventorySummaryReport>>, TError = ErrorType<void>>(
+ params?: GetInventorySummaryReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInventorySummaryReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInventorySummaryReportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetWeeklyInventoryReportUrl = (params?: GetWeeklyInventoryReportParams,) => {
   const normalizedParams = new URLSearchParams();

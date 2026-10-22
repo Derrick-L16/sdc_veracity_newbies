@@ -11,6 +11,27 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /backend/reports/summary:
+    get:
+      operationId: getInventorySummaryReport
+      summary: Daily, weekly, monthly or yearly inventory activity in Malaysia time
+      parameters:
+        - in: query
+          name: period
+          schema: { type: string, enum: [daily, weekly, monthly, yearly], default: weekly }
+        - in: query
+          name: date
+          description: Any nonfuture date in the selected period, YYYY-MM-DD; defaults to today
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Current period live, historical period frozen on first access
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventorySummaryReport" }
+        "400": { description: "Invalid period, date or future selection" }
+        "401": { description: Session required }
+        "403": { description: Manager or owner only }
   /backend/reports/weekly:
     get:
       operationId: getWeeklyInventoryReport
@@ -232,6 +253,41 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    InventorySummaryReport:
+      type: object
+      required: [period, periodStart, periodEnd, currentPeriodStart, timezone, asOf, generatedAt, isFinal, snapshotKind, totals, decisions, buckets, discrepancies, followUps, notes]
+      properties:
+        period: { type: string, enum: [daily, weekly, monthly, yearly] }
+        periodStart: { type: string }
+        periodEnd: { type: string }
+        currentPeriodStart: { type: string }
+        timezone: { type: string }
+        asOf: { type: string }
+        generatedAt: { type: string }
+        isFinal: { type: boolean }
+        snapshotKind: { type: string, enum: [live, saved] }
+        totals: { $ref: "#/components/schemas/WeeklyInventoryTotals" }
+        decisions: { $ref: "#/components/schemas/WeeklyInventoryDecisions" }
+        buckets:
+          type: array
+          items: { $ref: "#/components/schemas/InventorySummaryBucket" }
+        discrepancies: { $ref: "#/components/schemas/WeeklyInventoryDiscrepancies" }
+        followUps:
+          type: array
+          items: { $ref: "#/components/schemas/WeeklyInventoryFollowUp" }
+        notes:
+          type: array
+          items: { type: string }
+    InventorySummaryBucket:
+      type: object
+      required: [start, end, counts, newCases, closedCases, future]
+      properties:
+        start: { type: string }
+        end: { type: string }
+        counts: { type: integer }
+        newCases: { type: integer }
+        closedCases: { type: integer }
+        future: { type: boolean }
     WeeklyInventoryReport:
       type: object
       required: [weekStart, weekEnd, currentWeek, timezone, asOf, generatedAt, isFinal, snapshotKind, totals, decisions, daily, discrepancies, followUps, notes]

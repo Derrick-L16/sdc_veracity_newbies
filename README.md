@@ -4,6 +4,43 @@ Inventory discrepancy review with evidence attachments, human approval, and save
 Decision Passports. This is a **synthetic-data prototype with demo role switching**,
 not production authentication.
 
+## Source layout
+
+The product already separates its frontend and backend. Their paths stay stable
+so Replit and VS Code can use the same source:
+
+| Path | Responsibility |
+| --- | --- |
+| `artifacts/veracity/src/components/screens/` | Frontend pages |
+| `artifacts/veracity/src/components/reports/` | Summary picker, charts, metrics and follow-ups |
+| `artifacts/veracity/src/components/veracity/` | Shared inventory workflows and controls |
+| `artifacts/veracity/src/components/ui/` | Shared UI primitives actually used by the app |
+| `artifacts/veracity/src/hooks/`, `lib/` | Frontend requests, state, dates and formatting |
+| `artifacts/api-server/src/` | Express gateway and authenticated evidence file service |
+| `artifacts/api-server/backend/` | Python/SQLite inventory, imports, assessments and decisions |
+| `artifacts/api-server/backend/reporting/` | Reporting calendar boundaries, aggregation and snapshots |
+| `lib/api-spec/` | OpenAPI source contract and code-generation configuration |
+| `lib/api-client-react/`, `lib/api-zod/` | Generated client/types and validation; do not edit by hand |
+| `local-dev/` | Cross-platform VS Code launchers and local proxy |
+| `scripts/post-merge.sh` | Dependency setup after merges; not an application server |
+| `tests/` | Browser tests with a disposable database and uploads directory |
+| `docs/test-data/` | Shareable CSVs and evidence walkthrough |
+| `artifacts/mockup-sandbox/` | Separate Canvas preview tooling; not the product frontend |
+
+## Inventory Summary
+
+Managers and owners can select Daily, Weekly, Monthly or Yearly in Summary.
+Daily activity is grouped by hour, weekly/monthly by day, yearly by month.
+All calendar boundaries use **Asia/Kuala_Lumpur**; weeks run Monday–Sunday.
+Counts include matching submissions, while products counted deduplicates products
+within the selected period. Opened cases use creation time and closed cases use
+decision time. Outstanding cases include older unresolved cases.
+
+Current periods update while the page is visible. Historical periods are saved
+on their **first view**, not automatically at midnight or week end. Existing saved
+weekly reports are retained. These are in-app reports, not scheduled email delivery.
+Case links always open the current case, even from a historical snapshot.
+
 ## Run locally in VS Code (Windows, macOS, or Linux)
 
 No application folders have been moved. The frontend remains in
