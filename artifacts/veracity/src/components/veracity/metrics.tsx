@@ -1,126 +1,58 @@
-import { AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import type { DecisionVersion, StockCase } from '@/lib/types'
 import { formatSigned } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-export function DiscrepancyBar({
-  recorded,
-  counted,
-  explained,
-}: {
-  recorded: number
-  counted: number
-  /** Unsigned number of explained units; sign follows the difference. */
-  explained: number
-}) {
-  const diff = counted - recorded
-  const signedExplained = diff < 0 ? -explained : explained
-  const expected = recorded + signedExplained
-  const gap = Math.abs(counted - expected)
-  const matches = gap === 0
-
-  const steps = [
-    { label: 'Recorded', value: String(recorded) },
-    { label: 'Explained', value: formatSigned(signedExplained) },
-    { label: 'Expected', value: String(expected) },
-  ]
-
-  return (
-    <div className="flex flex-col gap-3 rounded-[12px] border border-line bg-elevated p-4">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-        {steps.map((s, i) => (
-          <div key={s.label} className="flex items-center gap-2">
-            <div className="flex flex-col">
-              <span className="text-caption font-medium tracking-[0.04em] text-fg-secondary uppercase">{s.label}</span>
-              <span className="num text-h2 font-semibold">{s.value}</span>
-            </div>
-            {i < steps.length - 1 && <ArrowRight className="size-4 text-fg-tertiary" aria-hidden="true" />}
-          </div>
-        ))}
-        <div className="mx-1 h-10 w-px bg-line" aria-hidden="true" />
-        <div className="flex flex-col">
-          <span className="text-caption font-medium tracking-[0.04em] text-fg-secondary uppercase">Counted</span>
-          <span className="num text-h2 font-semibold">{counted}</span>
-        </div>
-      </div>
-      <p
-        className={cn(
-          'flex items-center gap-2 text-body-sm font-medium',
-          matches ? 'text-success' : 'text-warning',
-        )}
-      >
-        {matches ? (
-          <CheckCircle2 className="size-4" aria-hidden="true" />
-        ) : (
-          <AlertCircle className="size-4" aria-hidden="true" />
-        )}
-        {matches
-          ? 'Matches. Expected stock equals the count.'
-          : `Does not match. ${gap} ${gap === 1 ? 'unit is' : 'units are'} still unexplained.`}
-      </p>
-    </div>
-  )
+export function reconciliationExplanation(stockCase: StockCase, viewed: DecisionVersion, isCurrent: boolean) {
+  // The backend supplies the complete eligible snapshot for the selected version.
+  // `explained` is capped and may be zero for conflicts; never use it as net movement.
+  const records = viewed.evidence
+  const net = records.reduce((sum, record) => sum + record.quantity, 0)
+  const expected = stockCase.recorded + net
+  const remaining = stockCase.counted - expected
+  const matches = remaining === 0
+  const salesOnly = records.length > 0 && records.every(record => record.type.toLowerCase() === 'sale')
+  const conflicting = viewed.evidenceState === 'conflicting' || records.some(record => record.match === 'conflicting')
+  const supported = records.length > 0 && matches && viewed.evidenceState === 'supported' && !conflicting
+  const label = salesOnly ? 'Sales records' : 'Stock movement records'
+  const title = !records.length
+    ? 'No eligible records explain the difference'
+    : supported ? `${label} explain the difference`
+    : matches ? 'Quantities match, but evidence needs review'
+    : salesOnly ? 'Count and sales records don’t match' : 'Count and stock movement records don’t match'
+  const calculation = `Recorded stock is ${stockCase.recorded}. ${salesOnly ? `Unposted sales of ${Math.abs(net)} units` : `Net unposted movements of ${formatSigned(net)} units`} bring expected stock to ${expected}. `
+  const difference = matches
+    ? `This matches your count of ${stockCase.counted}.`
+    : `You counted ${stockCase.counted}—${Math.abs(remaining)} ${Math.abs(remaining) === 1 ? 'unit' : 'units'} ${remaining > 0 ? 'above' : 'below'} expected.`
+  const reason = !records.length
+    ? `Recorded stock is ${stockCase.recorded}; you counted ${stockCase.counted}. No eligible unposted records were found for this assessment.`
+    : calculation + difference + (records.some(record => record.match === 'conflicting') ? ' Some records are flagged as conflicting.' : '')
+  let next = supported
+    ? 'Awaiting manager review and approval to update stock.'
+    : !records.length
+      ? 'Check the count and add missing records, then refresh the assessment.'
+      : 'Review the count and resolve missing or conflicting records before approval.'
+  if (!isCurrent) next = 'Earlier assessment. Open the current version for the latest decision.'
+  else if (stockCase.status === 'completed') next = 'Decision recorded. See the outcome for the final stock.'
+  else if (stockCase.status === 'rejected') next = 'Case rejected. See the recorded decision for details.'
+  return { title, reason, next, supported }
 }
 
-export function CoverageGauge({
-  explained,
-  total,
-  className,
-}: {
-  explained: number
-  total: number
-  className?: string
+export function ReconciliationExplanation({ stockCase, viewed, isCurrent }: {
+  stockCase: StockCase
+  viewed: DecisionVersion
+  isCurrent: boolean
 }) {
-  const pct = total === 0 ? 100 : Math.min(100, Math.round((explained / total) * 100))
-  const unexplained = Math.max(0, total - explained)
-  const full = unexplained === 0
-  const tone = full ? 'var(--status-success)' : 'var(--status-warning)'
-
+  const explanation = reconciliationExplanation(stockCase, viewed, isCurrent)
+  const Icon = explanation.supported ? CheckCircle2 : AlertCircle
   return (
-    <div
-      className={cn('flex flex-col items-center gap-2 rounded-[12px] border border-line bg-elevated p-4', className)}
-    >
-      <div className="relative w-full max-w-[220px]">
-        <svg viewBox="0 0 200 110" className="w-full" aria-hidden="true">
-          <path
-            d="M 16 100 A 84 84 0 0 1 184 100"
-            fill="none"
-            stroke="var(--line)"
-            strokeWidth="16"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 16 100 A 84 84 0 0 1 184 100"
-            fill="none"
-            stroke={tone}
-            strokeWidth="16"
-            strokeLinecap="round"
-            pathLength={100}
-            strokeDasharray={`${pct} 100`}
-          />
-        </svg>
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
-          <span className="num text-display font-semibold">{pct}%</span>
-        </div>
-      </div>
-      <p className="text-center text-body font-medium">
-        <span className="num">
-          {explained} of {total}
-        </span>{' '}
-        units explained
-      </p>
-      <p
-        className={cn(
-          'flex items-center gap-1.5 text-body-sm font-medium',
-          full ? 'text-success' : 'text-warning',
-        )}
-      >
-        {full ? (
-          <CheckCircle2 className="size-4" aria-hidden="true" />
-        ) : (
-          <AlertCircle className="size-4" aria-hidden="true" />
-        )}
-        {full ? 'Fully explained' : <span className="num">{unexplained} unexplained</span>}
-      </p>
-    </div>
+    <section className="flex flex-col gap-3 rounded-[12px] border border-line bg-elevated p-4" aria-label="Stock reconciliation explanation">
+      <h3 className={cn('flex items-start gap-2 text-body font-semibold', explanation.supported ? 'text-success' : 'text-warning')}>
+        <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        {explanation.title}
+      </h3>
+      <p className="text-body-sm text-fg-secondary">{explanation.reason}</p>
+      <p className="border-t border-line pt-3 text-body-sm font-medium">{explanation.next}</p>
+    </section>
   )
 }

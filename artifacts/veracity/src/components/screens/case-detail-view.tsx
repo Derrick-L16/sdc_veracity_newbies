@@ -7,7 +7,7 @@ import { ActionPanel } from '@/components/veracity/action-panel'
 import { CaseAttachments } from '@/components/veracity/case-attachments'
 import { CaseHeader, StockSummary, VersionSwitcher, stageContent } from '@/components/veracity/case-sections'
 import { CaseDetailSkeleton, StaleBanner } from '@/components/veracity/feedback'
-import { CoverageGauge, DiscrepancyBar } from '@/components/veracity/metrics'
+import { ReconciliationExplanation } from '@/components/veracity/metrics'
 import { Card, EmptyState, ErrorNotice } from '@/components/veracity/primitives'
 import { Timeline } from '@/components/veracity/timeline'
 import { cn } from '@/lib/utils'
@@ -51,7 +51,6 @@ export function CaseDetailView({ id, version }: { id: string; version?: number }
   const isCurrent = viewed.version === latest.version
   const closed = stockCase.status === 'completed' || stockCase.status === 'rejected'
   const basePath = `/cases/${stockCase.id}`
-  const total = Math.abs(stockCase.counted - stockCase.recorded)
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,13 +63,9 @@ export function CaseDetailView({ id, version }: { id: string; version?: number }
           <Card className="flex flex-col gap-5 p-5 md:p-6">
             <div className="flex flex-col gap-1">
               <h2 className="text-h3 font-semibold">Recommendation</h2>
-              <p className="text-body text-fg-secondary">{viewed.summary}</p>
             </div>
             <StockSummary stockCase={stockCase} />
-            <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
-              <DiscrepancyBar recorded={stockCase.recorded} counted={stockCase.counted} explained={viewed.explained} />
-              <CoverageGauge explained={viewed.explained} total={total} className="justify-self-center" />
-            </div>
+            <ReconciliationExplanation stockCase={stockCase} viewed={viewed} isCurrent={isCurrent} />
           </Card>
 
           <CaseAttachments key={`${id}-${viewed.version}`} stockCase={stockCase} viewed={viewed} historical={!isCurrent} />
