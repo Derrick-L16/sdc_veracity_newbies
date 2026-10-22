@@ -52,7 +52,7 @@ Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 - `artifacts/api-server/backend/` — original Python business logic, SQLite database and backend tests.
 - `artifacts/api-server/src/routes/backend.ts` — replacement for the Next API proxy, preserving `/api/backend/*`, browser-origin checks and HttpOnly session cookies.
 - `lib/api-spec/openapi.yaml` — transport contract. Domain payloads and validation remain owned by the imported backend and frontend domain types.
-- `.migration-backup/` — untouched imported reference, not used at runtime or deployed.
+- `scripts/post-merge.sh` — configured in `.replit` to run dependency/setup steps after merges; keep this folder. `scripts/src/hello.ts` is a scaffold example, not application logic.
 - `docs/` — imported product and backend documentation; references to Next describe the original architecture, superseded by the paths above.
 
 ## Persistence and scope decisions
