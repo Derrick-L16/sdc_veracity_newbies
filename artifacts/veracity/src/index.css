@@ -9,7 +9,7 @@
   --font-sans: 'Inter', system-ui, sans-serif;
 
   /* Veracity tokens */
-  --color-base: var(--bg-base);
+  --color-canvas: var(--bg-base);
   --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
   --color-line: var(--line);
@@ -124,7 +124,7 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-base text-body text-fg font-sans antialiased;
+    @apply bg-canvas text-body text-fg font-sans antialiased;
     font-feature-settings: 'cv11';
   }
   :focus-visible {

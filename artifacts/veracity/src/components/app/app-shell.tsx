@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`) || (href === '/inbox' && pathname.startsWith('/cases'))
 
   return (
-    <div className="min-h-dvh bg-base">
+    <div className="min-h-dvh bg-canvas">
       <a
         href="#main"
         className="sr-only z-50 rounded-[12px] bg-accent-fill px-4 py-3 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="md:pl-60">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-line bg-base/90 px-4 backdrop-blur md:justify-end md:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur md:justify-end md:px-8">
           <div className="md:hidden">
             <Brand />
           </div>

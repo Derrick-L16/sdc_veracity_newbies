@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'wouter'
 import { useState } from 'react'
+import { formatDateTime } from '@/lib/format'
 import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -364,7 +365,7 @@ export function StockHealth({
                 items
               </p>
               <p className="text-body-sm text-fg-secondary">
-                {noCount ? 'No count yet' : `Last count: ${summary.lastCount}`}
+                {noCount ? 'No count yet' : `Last count: ${formatDateTime(summary.lastCount ?? '')}`}
                 {summary.inProgress ? ' · results update when submitted' : ''}
               </p>
               {noCount && (
@@ -435,7 +436,7 @@ export function StaffHealth({ progress, className }: { progress: StaffProgress; 
                 items counted
               </p>
               <p className="text-body-sm text-fg-secondary">
-                {progress.lastSubmitted ? `Last submitted: ${progress.lastSubmitted}` : 'Not submitted yet'}
+                {progress.lastSubmitted ? `Last submitted: ${formatDateTime(progress.lastSubmitted)}` : 'Not submitted yet'}
               </p>
             </div>
           </div>

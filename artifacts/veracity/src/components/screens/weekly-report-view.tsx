@@ -1,14 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useSearch } from 'wouter'
-import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Lock, RefreshCw } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Lock, RefreshCw } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { WeeklyInventoryFollowUp, WeeklyInventoryReport } from '@workspace/api-client-react'
 import { useApp } from '@/components/app/app-provider'
 import { Card, EmptyState, ErrorNotice, PageHeader } from '@/components/veracity/primitives'
 import { Button } from '@/components/ui/button'
+import { DateInput } from '@/components/ui/date-input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { REPORT_TZ, currentMondayKL, normalizeWeek, shiftWeek, todayKL, useWeeklyReport } from '@/hooks/use-weekly-report'
+import { formatCalendarDate, formatKl } from '@/lib/kl-time'
+import { currentMondayKL, normalizeWeek, shiftWeek, todayKL, useWeeklyReport } from '@/hooks/use-weekly-report'
 
 const C = { cyan: '#61A9BD', yellow: '#CED14E', green: '#44986D', pink: '#DD83C9', blue: '#1F74AD', orange: '#E98E2E', purple: '#9267C6' }
 const DECISION_COLORS = { approved: C.cyan, overridden: C.yellow, rejected: C.pink }
@@ -18,9 +20,14 @@ const STATUS_LABEL: Record<WeeklyInventoryFollowUp['status'], string> = {
   manual_review: 'Manual review',
 }
 
-const fmtDay = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', ...opts })
-const fmtRange = (a: string, b: string) => `${fmtDay(a, { day: 'numeric', month: 'short' })} – ${fmtDay(b, { day: 'numeric', month: 'short', year: 'numeric' })}`
-const fmtStamp = (iso: string) => new Date(iso).toLocaleString('en-GB', { timeZone: REPORT_TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+const fmtDay = (iso: string, opts: Intl.DateTimeFormatOptions) => {
+  const date = formatCalendarDate(iso)
+  if (!opts.weekday) return date
+  const weekday = new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', weekday: opts.weekday })
+  return opts.day ? `${weekday} ${date}` : weekday
+}
+const fmtRange = (a: string, b: string) => `${formatCalendarDate(a)} – ${formatCalendarDate(b)}`
+const fmtStamp = formatKl
 const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`)
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`
 
@@ -77,16 +84,14 @@ function WeekPicker({ monday, isCurrent, onChange }: { monday: string; isCurrent
         <ChevronLeft className="size-4" aria-hidden="true" />
       </Button>
       <label className="relative flex h-10 items-center gap-2 rounded-full border border-line bg-surface pr-3 pl-3 text-body-sm">
-        <CalendarDays className="size-4 text-fg-tertiary" aria-hidden="true" />
         <span className="sr-only">Pick any date in a week</span>
-        <input
-          type="date"
+        <DateInput
           data-testid="input-week-date"
           value={monday}
           min="2000-01-03"
           max={todayKL()}
           onChange={(e) => { if (e.target.value) onChange(normalizeWeek(e.target.value).week) }}
-          className="num bg-transparent text-body-sm text-fg outline-none [color-scheme:inherit]"
+          className="h-9 min-w-36 border-0 bg-transparent px-0 text-body-sm text-fg"
         />
       </label>
       <Button variant="secondary" size="icon" aria-label="Next week" data-testid="button-next-week" disabled={isCurrent || nextIsFuture} onClick={() => onChange(next)}>
