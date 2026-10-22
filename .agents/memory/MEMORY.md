@@ -10,3 +10,4 @@
 - [Form contrast](form-contrast.md) — dark forms must retain readable text despite typography utilities; verify computed colors on actual screens.
 - [Malaysia date presentation](malaysia-date-presentation.md) — display event times as DD/MM/YYYY HH:MM:SS in Malaysia time; calendar dates stay DD/MM/YYYY.
 - [Imported artifact registration](imported-artifact-registration.md) — an empty artifact registry can coexist with valid imported manifests; preserve the source and manifests.
+- [Count adjustment baseline](count-adjustment-baseline.md) — signed count adjustments add to or subtract from the product's recorded stock.
