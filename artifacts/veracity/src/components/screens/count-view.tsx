@@ -113,7 +113,15 @@ export function CountView() {
     setBusy(true)
     try {
       const created = await submitCount({ product: product.name, recorded: product.recorded, counted: countedNum, note: note.trim() })
-      toast.success(created ? 'Count submitted. Case created.' : 'Count matches the record. Saved.')
+      toast.success(
+        created ? 'Count saved. Sent for manager review.' : 'Count saved. No difference found.',
+        {
+          description: created
+            ? 'A discrepancy case has been created.'
+            : 'No review case is needed. History shows closed discrepancy cases only.',
+          duration: 6000,
+        },
+      )
       navigate(created ? `/cases/${created.id}` : '/inbox')
     } catch (e) { toast.error((e as Error).message) }
     finally { setBusy(false) }
