@@ -60,10 +60,21 @@ export default defineConfig({
       strict: true,
       deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.veracity-local/**'],
     },
+    // Replit routes /api before it reaches Vite. Outside Replit (VS Code),
+    // running Vite on its own forwards /api to the local API launcher.
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:5000',
+        target: process.env.REPL_ID !== undefined
+          ? 'http://127.0.0.1:5000'
+          : `http://127.0.0.1:${process.env.LOCAL_API_PORT || '8000'}`,
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if (!('writeHead' in res) || res.headersSent) return
+            res.writeHead(502, { 'content-type': 'application/json' })
+            res.end(JSON.stringify({ error: 'The Veracity API server is not running. In VS Code, run "pnpm local" from the repository root and open http://localhost:3000.' }))
+          })
+        },
       },
     },
   },

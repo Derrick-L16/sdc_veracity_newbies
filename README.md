@@ -52,8 +52,8 @@ No application folders have been moved. The frontend remains in
 - Node.js **24 LTS** and npm.
 - pnpm **10** (`npm install --global pnpm@10` if needed).
 - Python **3.10+**, including its standard SQLite module.
-- On Windows, use a **Git Bash terminal** for `pnpm install`; the repository's
-  existing install script uses shell commands.
+- Any terminal works, including PowerShell on Windows (Git Bash is no longer
+  required for `pnpm install`).
 
 After installing runtimes, close and reopen VS Code so PATH changes take effect.
 
@@ -62,9 +62,14 @@ After installing runtimes, close and reopen VS Code so PATH changes take effect.
 From the repository root:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm local
 ```
+
+In VS Code you can also use **Terminal → Run Build Task…** (`Ctrl+Shift+B`), which
+runs the same `pnpm local` from `.vscode/tasks.json`. `--frozen-lockfile` keeps
+`pnpm-lock.yaml` identical to the one Replit uses; don't commit lockfile changes
+made by a plain `pnpm install`.
 
 Wait for the API's **Server listening** message, then open:
 
@@ -135,6 +140,8 @@ unless `NODE_ENV=development`; it must not be used as production storage.
 | Dependencies missing | Run `pnpm install` from the repository root |
 | Python not found | Install Python 3.10+, reopen VS Code; launcher tries Windows `python`, `py -3`, then `python3` |
 | Port already used | Stop the old Python/Node process; do not run both startup styles simultaneously |
+| `Could not enter demo` / `Unexpected end of JSON input` / `Could not reach the Veracity API server` | The API isn't running. Start the app with `pnpm local` (not `pnpm --filter @workspace/veracity run dev` on its own), wait for **Server listening**, then open http://localhost:3000 |
+| `pnpm test:e2e` says the browser executable doesn't exist | Outside Replit, run `pnpm exec playwright install chromium` once |
 | API returned HTML | Use port **3000**, ensure both local launchers are running, and pull the latest code |
 | Local API not ready / HTTP 502 | Wait for the API build/startup; inspect the backend terminal |
 | Empty inventory | Import sample product and movement CSVs in Account → Connected records |

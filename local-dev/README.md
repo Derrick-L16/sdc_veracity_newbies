@@ -4,12 +4,12 @@ See the root [README](../README.md) for complete setup and troubleshooting.
 Existing frontend/backend directories are unchanged.
 
 Requires Node.js **24 LTS**, pnpm **10**, and Python **3.10+**.
-Use Git Bash on Windows for installation.
+Any terminal works on Windows, including PowerShell.
 
 From the repository root:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm local
 ```
 

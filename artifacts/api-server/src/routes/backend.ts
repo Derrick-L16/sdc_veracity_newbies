@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getBackendUrl } from "../lib/python-backend";
+import { isTrustedOrigin } from "../lib/trusted-origin";
 
 const router: IRouter = Router();
 
@@ -19,13 +20,10 @@ router.all("/backend/*path", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid path." });
     return;
   }
-  // The shared reverse proxy terminates HTTPS. Use its forwarded host and
-  // protocol to compare the browser's exact origin, rather than localhost.
-  const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
+  // The shared reverse proxy terminates HTTPS; its forwarded protocol marks cookies Secure.
   const protocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim() || req.protocol;
   if (req.method === "POST") {
-    const expected = process.env.APP_ORIGIN || `${protocol}://${host}`;
-    if (!req.get("origin") || req.get("origin") !== expected) {
+    if (!isTrustedOrigin(req)) {
       res.status(403).json({ error: "Untrusted request origin." });
       return;
     }

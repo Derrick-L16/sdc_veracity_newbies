@@ -23,6 +23,6 @@ try {
     VERACITY_DB: path.join(dataDir, 'veracity.sqlite3'),
     PYTHON_EXECUTABLE: py.command,
     VERACITY_PYTHON_ARGS: JSON.stringify(py.args),
-    APP_ORIGIN: `http://localhost:${webPort}`,
+    APP_ORIGIN: `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
   })
 } catch (error) { fail(error) }
