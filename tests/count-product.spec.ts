@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./isolated-test";
 import { loginDemo } from "./demo-helpers";
 
 test("staff product creation is explicit about unavailable product evidence", async ({ page }) => {

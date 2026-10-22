@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 
 type Mode = 'count' | 'product' | 'evidence' | 'complete'
 type Flow = 'count' | 'product' | null
+type CountEntryMode = 'total' | 'adjustment'
 
 export function CountView() {
   const [, navigate] = useLocation()
@@ -25,6 +26,7 @@ export function CountView() {
   const [flow, setFlow] = useState<Flow>(null)
   const [productId, setProductId] = useState('')
   const [counted, setCounted] = useState('')
+  const [countEntryMode, setCountEntryMode] = useState<CountEntryMode>('total')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -49,12 +51,26 @@ export function CountView() {
     (mode === 'evidence' && flow === 'product' && Boolean(productFile)) ||
     busy,
   )
-  const countedNum = counted === '' ? null : Number(counted)
-  const countedValid = countedNum !== null && Number.isInteger(countedNum) && countedNum >= 0
+  const enteredCount = counted === '' || counted === '+' || counted === '-' ? null : Number(counted)
+  const countedNum = enteredCount === null ? null
+    : countEntryMode === 'adjustment' && product ? product.recorded + enteredCount : enteredCount
+  const countedValid = enteredCount !== null && Number.isInteger(enteredCount) &&
+    countedNum !== null && Number.isInteger(countedNum) && countedNum >= 0 && countedNum <= 1_000_000_000
   const difference = product && countedValid ? countedNum - product.recorded : null
   const duplicateCase = product && countedValid ? findOpenCase(product.name, countedNum) : undefined
   const nameDuplicate = products.some((item) => item.name.trim().toLowerCase() === newName.trim().toLowerCase())
-  const countedError = (submitted && !countedValid) || (countedNum !== null && countedNum < 0)
+  const countedError = (submitted && !countedValid) || (enteredCount !== null && (!Number.isInteger(enteredCount) || (countedNum !== null && (countedNum < 0 || countedNum > 1_000_000_000))))
+  const countedErrorMessage = countEntryMode === 'adjustment'
+    ? countedNum !== null && countedNum < 0
+      ? 'This adjustment would make the counted quantity less than 0.'
+      : countedNum !== null && countedNum > 1_000_000_000
+        ? 'The counted quantity cannot exceed 1,000,000,000.'
+        : 'Enter a whole-number adjustment, such as +5 or -5.'
+    : countedNum !== null && countedNum < 0
+      ? 'Counted quantity cannot be less than 0.'
+      : countedNum !== null && countedNum > 1_000_000_000
+        ? 'Counted quantity cannot exceed 1,000,000,000.'
+        : 'Enter a whole number of 0 or more.'
   const productMissing = submitted && !product
   const canWrite = role === 'staff' || role === 'manager'
   const nameError = nameDuplicate || productError.toLowerCase().includes('already exists')
@@ -71,7 +87,7 @@ export function CountView() {
   const selectMode = (next: Mode) => { setMode(next); focusAction() }
 
   const reset = () => {
-    setMode('count'); setFlow(null); setProductId(''); setCounted(''); setNote(''); setSubmitted(false)
+    setMode('count'); setFlow(null); setProductId(''); setCounted(''); setCountEntryMode('total'); setNote(''); setSubmitted(false)
     setNewName(''); setNewRecorded(''); setNewCost(''); setNewNote(''); setProductError(''); setProductSubmitted(false)
     setNewProduct(null); setNewCase(null); setProductFile(null); setFileError('')
     if (fileInput.current) fileInput.current.value = ''
@@ -249,7 +265,7 @@ export function CountView() {
           <div className="flex flex-col gap-2">
             <Label htmlFor={ids.product} className="text-body-sm font-medium">Product</Label>
             <div className="relative">
-              <select id={ids.product} value={productId} onChange={(e) => setProductId(e.target.value)} aria-invalid={productMissing} aria-describedby={productMissing ? `${ids.product}-error` : undefined} className="h-12 w-full appearance-none rounded-[12px] border border-line bg-elevated px-4 pr-10 text-body text-white outline-none focus-visible:ring-2 focus-visible:ring-accent-text aria-invalid:border-danger">
+              <select id={ids.product} value={productId} onChange={(e) => { setProductId(e.target.value); setCounted(''); setSubmitted(false) }} aria-invalid={productMissing} aria-describedby={productMissing ? `${ids.product}-error` : undefined} className="h-12 w-full appearance-none rounded-[12px] border border-line bg-elevated px-4 pr-10 text-body text-white outline-none focus-visible:ring-2 focus-visible:ring-accent-text aria-invalid:border-danger">
                 <option value="">Choose a product</option>
                 {products.map((item) => <option key={item.id} value={item.id}>{item.name}{item.evidence_missing ? ' · Evidence missing' : ''}</option>)}
               </select>
@@ -257,13 +273,22 @@ export function CountView() {
             </div>
             {productMissing && <p id={`${ids.product}-error`} className="text-body-sm font-medium text-danger">Choose a product.</p>}
           </div>
+          <div role="group" aria-label="Quantity entry method" className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant={countEntryMode === 'total' ? 'primary' : 'secondary'} aria-pressed={countEntryMode === 'total'} data-testid="count-mode-total" onClick={() => { setCountEntryMode('total'); setCounted(''); setSubmitted(false) }}>Total quantity</Button>
+            <Button type="button" size="sm" variant={countEntryMode === 'adjustment' ? 'primary' : 'secondary'} aria-pressed={countEntryMode === 'adjustment'} data-testid="count-mode-adjustment" onClick={() => { setCountEntryMode('adjustment'); setCounted(''); setSubmitted(false) }}>Adjustment (+/−)</Button>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <StatTile label="Recorded stock" value={product ? product.recorded : '—'} />
             <StatTile label="Difference" value={difference === null ? '—' : formatSigned(difference)} tone={difference ? 'accent' : 'default'} />
           </div>
-          <Field label="Counted quantity" id={ids.counted} error={countedError ? countedNum !== null && countedNum < 0 ? 'Counted quantity cannot be less than 0.' : 'Enter a whole number of 0 or more.' : ''} errorId={`${ids.counted}-error`}>
-            <Input id={ids.counted} type="number" inputMode="numeric" min={0} max={1_000_000_000} step={1} value={counted} onChange={(e) => setCounted(e.target.value)} aria-invalid={countedError} aria-describedby={countedError ? `${ids.counted}-error` : undefined} className="num h-14 rounded-[12px] border-line bg-elevated px-4 text-h2 font-semibold text-white" placeholder="0" />
+          <Field label={countEntryMode === 'total' ? 'Counted quantity' : 'Adjustment (use +5 or -5)'} id={ids.counted} error={countedError ? countedErrorMessage : ''} errorId={`${ids.counted}-error`}>
+            <Input id={ids.counted} type={countEntryMode === 'adjustment' ? 'text' : 'number'} inputMode={countEntryMode === 'adjustment' ? 'decimal' : 'numeric'} min={countEntryMode === 'adjustment' && product ? -product.recorded : 0} max={countEntryMode === 'adjustment' && product ? 1_000_000_000 - product.recorded : 1_000_000_000} step={1} value={counted} onChange={(e) => setCounted(e.target.value)} aria-invalid={countedError} aria-describedby={countedError ? `${ids.counted}-error` : undefined} className="num h-14 rounded-[12px] border-line bg-elevated px-4 text-h2 font-semibold text-white" placeholder={countEntryMode === 'adjustment' ? '+5 or -5' : '0'} />
           </Field>
+          {countEntryMode === 'adjustment' && product && enteredCount !== null && Number.isInteger(enteredCount) && countedNum !== null && (
+            <p role="status" aria-live="polite" data-testid="adjustment-result" className="rounded-[12px] border border-line bg-elevated px-4 py-3 text-body-sm text-fg-secondary">
+              New counted quantity: <span className="num font-semibold text-fg">{countedNum}</span>
+            </p>
+          )}
           {difference === 0 && <NoDifferenceBadge />}
           {duplicateCase && <ErrorNotice title="A case for this count is already open." description={`${duplicateCase.id} has the same product and count. Open it instead of creating a duplicate.`} action={<Link href={`/cases/${duplicateCase.id}`} className="text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">Open {duplicateCase.id}</Link>} />}
           <Field label={<>Note <span className="font-normal text-fg-tertiary">(optional)</span></>} id={ids.note}>

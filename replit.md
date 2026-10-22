@@ -11,6 +11,14 @@ Use the managed Replit workflows:
 
 Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 
+The Replit **Run** button starts both managed application workflows in parallel.
+On a fresh import, install the existing dependencies with
+`pnpm install --frozen-lockfile`, then click **Run** and open the preview.
+Choose Staff, Manager or Owner on the login screen to enter the demo.
+The separate `test`, `typecheck` and `app-test` workflows are checks, not servers.
+This workspace has private App Storage provisioned for evidence; a new import
+must provision its own bucket rather than reuse a bucket ID from another workspace.
+
 ## Source and routes
 
 - `artifacts/veracity/src/` — preserved imported screens, components, styles and state provider; wouter replaces Next routing.

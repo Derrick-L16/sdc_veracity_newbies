@@ -1,4 +1,4 @@
-modules = ["web", "nodejs-24", "python-base-3.13"]
+modules = ["python-3.12", "web", "nodejs-24"]
 
 [deployment]
 router = "application"
@@ -18,15 +18,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "test"
+args = "artifacts/api-server: API Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "typecheck"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "app-test"
+args = "artifacts/veracity: web"
 
 [[workflows.workflow]]
 name = "test"
@@ -73,4 +69,4 @@ timeoutMs = 20000
 channel = "stable-25_05"
 
 [objectStorage]
-defaultBucketID = "replit-objstore-0b539943-2107-40c0-9c14-f4f666279694"
+defaultBucketID = "replit-objstore-c4ac44a6-6295-420e-a1cb-bd2de6abd3b3"
