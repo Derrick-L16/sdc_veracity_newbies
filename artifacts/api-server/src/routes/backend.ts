@@ -32,8 +32,8 @@ router.all("/backend/*path", async (req, res): Promise<void> => {
   }
   try {
     // Preserve the report's date filter; the original proxy dropped queries.
-    // Only this endpoint accepts a query, and Python validates its full shape.
-    const query = segments.join("/") === "reports/weekly" && req.originalUrl.includes("?")
+    // Report filters must survive the proxy; Python validates their complete shape.
+    const query = ["reports/weekly", "reports/summary"].includes(segments.join("/")) && req.originalUrl.includes("?")
       ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
     const response = await fetch(`${getBackendUrl()}/${segments.join("/")}${query}`, {
       method: req.method,

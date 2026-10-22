@@ -1,11 +1,12 @@
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { mockupPreviewPlugin } from "./mockupPreviewPlugin";
 
-const rawPort = process.env.PORT;
+// Managed previews supply these values. Local builds do not need preview env.
+const rawPort = process.env.PORT || "5180";
 
 if (!rawPort) {
   throw new Error(
@@ -19,7 +20,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
+const basePath = process.env.BASE_PATH || "/";
 
 if (!basePath) {
   throw new Error(
@@ -33,14 +34,16 @@ export default defineConfig({
     mockupPreviewPlugin(),
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
+    // pnpm may resolve the same Vite version through different optional peers.
+    // The overlay is runtime-compatible; normalize its duplicate Vite type here.
+    runtimeErrorOverlay() as PluginOption,
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-cartographer").then((m) =>
             m.cartographer({
               root: path.resolve(import.meta.dirname, ".."),
-            }),
+            }) as PluginOption,
           ),
         ]
       : []),

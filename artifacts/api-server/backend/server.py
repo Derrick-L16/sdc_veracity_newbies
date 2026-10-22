@@ -10,6 +10,7 @@ import sqlite3
 import sys
 import attachments
 import reports
+from reporting import service as summary_reports
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -42,6 +43,7 @@ def init():
         ''')
         attachments.init(db)
         reports.init(db)
+        summary_reports.init(db)
 
 def audit(db,user,action,cid,detail): db.execute('INSERT INTO audit(at,actor,action,case_id,detail) VALUES(?,?,?,?,?)',(now(),user['name'],action,cid,dump(detail)))
 def integer(value, label, minimum=0):
@@ -208,7 +210,7 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(b,dict): raise APIError('Expected JSON object.')
             path=self.path.split('?')[0].strip('/').split('/')
             with connect() as db:
-                reporting = self.command=='GET' and path==['reports','weekly']
+                reporting = self.command=='GET' and path in (['reports','weekly'], ['reports','summary'])
                 db.execute('BEGIN IMMEDIATE' if self.command=='POST' or reporting else 'BEGIN')
                 if path==['health'] and self.command=='GET': self.respond(200,{'ok':True});return
                 cookie=self.headers.get('Cookie','');token=next((p.strip().split('=',1)[1] for p in cookie.split(';') if p.strip().startswith('veracity_session=')),'')
@@ -233,9 +235,14 @@ class Handler(BaseHTTPRequestHandler):
                 elif reporting:
                     from urllib.parse import parse_qs, urlsplit
                     query=parse_qs(urlsplit(self.path).query,keep_blank_values=True)
-                    if set(query)-{'week'} or len(query.get('week',[]))>1:
-                        raise APIError('Expected a single optional week parameter.')
-                    result=reports.weekly(db,user,query.get('week',[None])[0],sys.modules[__name__])
+                    if path[-1]=='weekly':
+                        if set(query)-{'week'} or len(query.get('week',[]))>1:
+                            raise APIError('Expected a single optional week parameter.')
+                        result=reports.weekly(db,user,query.get('week',[None])[0],sys.modules[__name__])
+                    else:
+                        if set(query)-{'period','date'} or any(len(v)!=1 for v in query.values()):
+                            raise APIError('Expected one optional period and one optional date.')
+                        result=summary_reports.summary(db,user,query.get('period',[None])[0],query.get('date',[None])[0],sys.modules[__name__])
                 elif self.command=='POST' and path==['counts']:result=create_count(db,user,b)
                 elif self.command=='POST' and path==['imports']:result=import_rows(db,user,b)
                 elif len(path)>=2 and path[0]=='cases':

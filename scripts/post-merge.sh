@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
-pnpm --filter db push
+# Inventory and evidence metadata use the preserved Python/SQLite backend.
+# Do not run scaffolded PostgreSQL migrations against an unrelated database.
