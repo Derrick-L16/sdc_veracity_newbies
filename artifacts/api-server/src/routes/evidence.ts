@@ -2,6 +2,7 @@ import { Router, raw, type IRouter, type Request } from "express";
 import { getBackendUrl, evidenceBridge } from "../lib/python-backend";
 import { EvidenceError, MAX_SIZE, evidenceFile, removeStaging, uploadURL, verifyAndPreserve, type UploadTicket } from "../lib/evidence-storage";
 import { localEvidenceEnabled, saveLocalBytes, localMetadata, localReadStream } from "../lib/local-evidence-storage";
+import { isTrustedOrigin } from "../lib/trusted-origin";
 import { RequestCaseEvidenceUploadBody, RequestCaseEvidenceUploadResponse, FinalizeCaseEvidenceUploadResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -24,9 +25,7 @@ router.use("/evidence", (req, res, next) => {
     res.status(400).json({ error: "Invalid evidence path." }); return;
   }
   if (req.method === "POST" || req.method === "PUT") {
-    const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
-    const protocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim() || req.protocol;
-    if (req.get("origin") !== (process.env.APP_ORIGIN || `${protocol}://${host}`)) {
+    if (!isTrustedOrigin(req)) {
       res.status(403).json({ error: "Untrusted request origin." }); return;
     }
   }

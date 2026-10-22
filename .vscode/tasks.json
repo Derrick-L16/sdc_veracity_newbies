@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Veracity: install dependencies",
+      "type": "shell",
+      "command": "pnpm install --frozen-lockfile",
+      "problemMatcher": []
+    },
+    {
+      "label": "Veracity: run app (http://localhost:3000)",
+      "type": "shell",
+      "command": "pnpm local",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Veracity: typecheck",
+      "type": "shell",
+      "command": "pnpm run typecheck",
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}
