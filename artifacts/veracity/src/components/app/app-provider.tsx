@@ -83,11 +83,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const reassess = useCallback(async (id: string) => { await mutate(`cases/${id}/reassess`, {}) }, [mutate])
   const createProduct = useCallback(async (input: ProductInput) => {
     const result = await createInventoryProduct(input)
-    await refresh()
+    try { await refresh() } catch { /* The create response is authoritative; refresh exposes its own error state. */ }
     return result
   }, [refresh])
   const submitCount = useCallback(async (input: { product: string; recorded: number; counted: number; note: string }) => {
-    const result = await api<StockCase | { matched: true }>('counts', input); await refresh(); return 'matched' in result ? null : result
+    const result = await api<StockCase | { matched: true }>('counts', input)
+    try { await refresh() } catch { /* The count result is authoritative; refresh exposes its own error state. */ }
+    return 'matched' in result ? null : result
   }, [refresh])
   const findOpenCase = useCallback((product: string, _counted: number) => cases.find(c => c.product === product && OPEN_STATUSES.includes(c.status)), [cases])
   const inboxCases = useMemo(() => cases.filter(c => OPEN_STATUSES.includes(c.status)), [cases])

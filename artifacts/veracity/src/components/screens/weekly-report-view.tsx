@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useSearch } from 'wouter'
-import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Lock, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Lock, RefreshCw } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { WeeklyInventoryFollowUp, WeeklyInventoryReport } from '@workspace/api-client-react'
 import { useApp } from '@/components/app/app-provider'
 import { Card, EmptyState, ErrorNotice, PageHeader } from '@/components/veracity/primitives'
-import { Button } from '@/components/ui/button'
+import { Pill } from '@/components/veracity/badges'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { REPORT_TZ, currentMondayKL, normalizeWeek, shiftWeek, todayKL, useWeeklyReport } from '@/hooks/use-weekly-report'
@@ -25,11 +26,13 @@ const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`)
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`
 
 export function WeeklyReportView() {
-  const { role, loading: appLoading, error: appError } = useApp()
+  const { role, loading: appLoading, error: appError, summary } = useApp()
   const allowed = role === 'manager' || role === 'owner'
   const search = useSearch()
   const [, navigate] = useLocation()
   const raw = new URLSearchParams(search).get('week')
+  const productId = new URLSearchParams(search).get('product')
+  const selectedProduct = productId ? summary.items.find(item => item.productId === productId) : undefined
   const { week, error: weekError } = normalizeWeek(raw)
   const enabled = !appLoading && !appError && allowed
   const r = useWeeklyReport(week, enabled, role)
@@ -38,6 +41,12 @@ export function WeeklyReportView() {
   const go = (w: string | null) => navigate(w && w !== currentMondayKL() ? `/reports?week=${w}` : '/reports')
 
   if (appLoading) return <ReportSkeleton />
+  if (appError) return <ErrorNotice title="Session unavailable" description={appError} />
+  if (productId) {
+    return selectedProduct
+      ? <ProductSummaryDetail item={selectedProduct} />
+      : <div className="flex flex-col gap-4"><ErrorNotice title="Product not found" description="Refresh the stock summary and try again." /><Link href="/count" className="self-start text-body-sm font-medium text-accent-text underline">Back to count</Link></div>
+  }
   if (!allowed) {
     return (
       <EmptyState
@@ -47,8 +56,6 @@ export function WeeklyReportView() {
       />
     )
   }
-  if (appError) return <ErrorNotice title="Session unavailable" description={appError} />
-
   return (
     <div className="flex flex-col gap-6" data-testid="page-weekly-report">
       <PageHeader title="Weekly summary" subtitle="Count activity, decisions and the investigations still open, by week in Kuala Lumpur time.">
@@ -64,6 +71,38 @@ export function WeeklyReportView() {
       ) : (
         <ReportBody report={r.report} refreshing={r.refreshing} refreshError={r.refreshError} onRetry={r.retry} />
       )}
+    </div>
+  )
+}
+
+function ProductSummaryDetail({ item }: { item: ReturnType<typeof useApp>['summary']['items'][number] }) {
+  const status = item.status === 'not_counted'
+    ? <Pill tone="neutral" icon={AlertTriangle}>Not counted</Pill>
+    : item.difference === 0
+      ? <Pill tone="success" icon={CheckCircle2}>Matches</Pill>
+      : item.difference! < 0
+        ? <span className="inline-flex items-center gap-2 text-body-sm font-medium text-danger"><AlertTriangle className="size-4" aria-hidden="true" />Short by {Math.abs(item.difference!)}</span>
+        : <span className="inline-flex items-center gap-2 text-body-sm font-medium text-accent-text"><ArrowUpRight className="size-4 text-fg-secondary" aria-hidden="true" />More by {item.difference}</span>
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader title="Product summary" subtitle="Current counted quantity compared with the recorded stock.">
+        <Link href="/count" className={buttonVariants({ variant: 'secondary' })}><ArrowLeft aria-hidden="true" />Back to count</Link>
+      </PageHeader>
+      <Card className="flex flex-col gap-4" data-testid={`card-product-summary-${item.productId}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-h2 font-semibold">{item.name}</h2>
+          {item.evidenceMissing && <Pill tone="warning" icon={AlertTriangle}>Evidence missing</Pill>}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Metric label="Counted" value={item.counted ?? 0} note={item.counted === null ? 'No count submitted' : 'Latest observed quantity'} testid={`product-counted-${item.productId}`} />
+          <Metric label="Recorded" value={item.recorded} note="Current inventory record" testid={`product-recorded-${item.productId}`} />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-elevated p-3">
+          <span className="text-body-sm text-fg-secondary">Difference</span>
+          <div className="flex items-center gap-3"><span className="num text-h3 font-semibold">{item.difference === null ? '—' : signed(item.difference)}</span>{status}</div>
+        </div>
+        {item.caseId && <Link href={`/cases/${item.caseId}`} className="self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">View case {item.caseId} <ArrowRight className="inline size-4" aria-hidden="true" /></Link>}
+      </Card>
     </div>
   )
 }
