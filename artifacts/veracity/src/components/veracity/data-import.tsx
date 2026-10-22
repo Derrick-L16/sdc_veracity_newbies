@@ -29,8 +29,10 @@ export function DataImport({ onStateChange }: { onStateChange?: (state: { dirty:
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [fileError, setFileError] = useState('')
+  const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
   const selectFile = (files: File[]) => {
     if (busy || !files.length) return
+    setFeedback(null)
     setFile(null)
     if (files.length !== 1 || !files[0].name.toLowerCase().endsWith('.csv')) {
       setFileError('Choose one CSV file.'); return
@@ -47,6 +49,7 @@ export function DataImport({ onStateChange }: { onStateChange?: (state: { dirty:
   if (role !== 'manager') return null
   const upload = async () => {
     if (!file || busy) return
+    setFeedback(null)
     setBusy(true)
     try {
       if (file.size > 1500000) throw new Error('Use a CSV smaller than 1.5 MB.')
@@ -57,16 +60,23 @@ export function DataImport({ onStateChange }: { onStateChange?: (state: { dirty:
       const response = await fetch('/api/backend/imports', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ kind, rows }) })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error)
-      await refresh(); toast.success(`Imported ${result.imported} records.`)
+      await refresh()
+      const message = `Imported ${result.imported} records.`
+      setFeedback({ kind: 'success', text: message })
+      toast.success(message)
       setFile(null)
       if (inputRef.current) inputRef.current.value = ''
-    } catch (e) { toast.error((e as Error).message) }
+    } catch (e) {
+      const message = (e as Error).message
+      setFeedback({ kind: 'error', text: message })
+      toast.error(message)
+    }
     finally { setBusy(false) }
   }
   return <Card className="flex flex-col gap-4 p-5">
     <h2 className="text-h3 font-semibold">Connected records</h2>
     <p className="text-body-sm text-fg-secondary">Import your inventory first, then unposted movements. Imports add records; they never overwrite stock. This is a local CSV connector, not a live Orbyte connection.</p>
-    <select aria-label="Import type" className="h-12 rounded-[12px] border border-line bg-elevated px-4 text-white" value={kind} disabled={busy} onChange={e => { setKind(e.target.value); setFile(null); setFileError(''); if (inputRef.current) inputRef.current.value = '' }}><option value="products">Inventory products</option><option value="movements">Unposted stock movements</option></select>
+    <select aria-label="Import type" className="h-12 rounded-[12px] border border-line bg-elevated px-4 text-white" value={kind} disabled={busy} onChange={e => { setKind(e.target.value); setFile(null); setFileError(''); setFeedback(null); if (inputRef.current) inputRef.current.value = '' }}><option value="products">Inventory products</option><option value="movements">Unposted stock movements</option></select>
     <p className="break-all text-caption text-fg-secondary">{kind === 'products' ? 'Headers: id,name,recorded,unit_cost' : 'Headers: id,product_id,kind,quantity,occurred_at,conflict_ref'}</p>
     <input ref={inputRef} type="file" accept=".csv,text/csv" aria-label="CSV records" disabled={busy} hidden onChange={e => { selectFile(Array.from(e.target.files || [])); e.target.value = '' }} />
     <button
@@ -82,6 +92,7 @@ export function DataImport({ onStateChange }: { onStateChange?: (state: { dirty:
       {file ? <span className="min-w-0 break-all">{file.name} · <span className="underline underline-offset-4">Change file</span></span> : <span>Drop CSV here or <span className="font-medium underline underline-offset-4">Browse</span></span>}
     </button>
     <p id="csv-file-help" className="text-caption text-fg-secondary" aria-live="polite">{fileError || (file ? 'Ready to import. Click Import records below.' : 'One CSV file · Up to 1.5 MB')}</p>
+    {feedback && <p role={feedback.kind === 'error' ? 'alert' : 'status'} className={`text-body-sm ${feedback.kind === 'error' ? 'text-danger' : 'text-success'}`}>{feedback.text}</p>}
     <Button disabled={!file || busy} onClick={upload}>{busy ? 'Importing…' : 'Import records'}</Button>
   </Card>
 }
