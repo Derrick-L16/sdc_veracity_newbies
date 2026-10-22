@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { AlertTriangle, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, FileText, Loader2, Paperclip, Plus, Send, X } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, FileText, Loader2, Minus, Paperclip, Plus, Send, X } from 'lucide-react'
 import { Link, useLocation } from 'wouter'
 import { toast } from 'sonner'
 import { useApp } from '@/components/app/app-provider'
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CaseAttachments } from '@/components/veracity/case-attachments'
-import { NoDifferenceBadge, Pill } from '@/components/veracity/badges'
+import { NoDifferenceBadge } from '@/components/veracity/badges'
 import { Card, ErrorNotice, PageHeader, StatTile } from '@/components/veracity/primitives'
 import { formatSigned } from '@/lib/format'
 import type { StockSummaryItem } from '@/lib/stock'
@@ -36,6 +36,7 @@ export function CountView() {
   const [productSubmitted, setProductSubmitted] = useState(false)
   const [newProduct, setNewProduct] = useState<Product | null>(null)
   const [newCase, setNewCase] = useState<StockCase | null>(null)
+  const [updatedProductId, setUpdatedProductId] = useState('')
   const [productFile, setProductFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState('')
   const actionRef = useRef<HTMLButtonElement>(null)
@@ -88,6 +89,8 @@ export function CountView() {
     setBusy(true)
     try {
       const created = await submitCount({ product: product.name, recorded: product.recorded, counted: countedNum, note: note.trim() })
+      setUpdatedProductId(product.id)
+      window.setTimeout(() => setUpdatedProductId(''), 150)
       setFlow('count')
       if (!created) {
         toast.success('Count matches the record. Saved.')
@@ -188,6 +191,7 @@ export function CountView() {
                 viewed={newCase.versions[newCase.versions.length - 1]}
                 helperText="Add a photo or report that explains the difference."
                 completionMode
+                descriptionClassName="text-white"
                 onDone={() => setMode('complete')}
               />
               <p className="text-body-sm text-fg-secondary">You can add documents later from the case page.</p>
@@ -223,6 +227,7 @@ export function CountView() {
           loading={loading}
           error={error}
           selectedId={productId || newProduct?.id || ''}
+          updatedProductId={updatedProductId}
           role={role}
           onRetry={() => { void refresh().catch(() => {}) }}
         />
@@ -300,63 +305,92 @@ function ProductEvidenceStep({ product, file, fileError, fileInput, onFile, onDo
   )
 }
 
-function StockSummaryPanel({ items, matches, total, updatedAt, loading, error, selectedId, role, onRetry }: {
+function StockSummaryPanel({ items, matches, total, updatedAt, loading, error, selectedId, updatedProductId, role, onRetry }: {
   items: StockSummaryItem[]; matches: number; total: number; updatedAt: string; loading: boolean; error: string | null
-  selectedId: string; role: string; onRetry: () => void
+  selectedId: string; updatedProductId: string; role: string; onRetry: () => void
 }) {
   const [compactOpen, setCompactOpen] = useState(false)
   const visible = useMemo(() => {
+    const rank = (item: StockSummaryItem) => item.difference === null ? 1 : item.difference === 0 ? 2 : 0
+    const compare = (a: StockSummaryItem, b: StockSummaryItem) => {
+      const rankDiff = rank(a) - rank(b)
+      if (rankDiff) return rankDiff
+      if (rank(a) === 0) return Math.abs(b.difference!) - Math.abs(a.difference!)
+      return 0
+    }
+    const sorted = [...items].sort(compare)
     const selected = items.find(item => item.productId === selectedId)
-    const subset = items.slice(0, 6)
+    const subset = sorted.slice(0, 6)
     if (selected && !subset.some(item => item.productId === selectedId)) subset[5] = selected
-    return subset.sort((a, b) => {
-      const rank = (item: StockSummaryItem) => item.difference === null ? 1 : item.difference === 0 ? 2 : 0
-      return rank(a) - rank(b)
-    })
+    return subset.sort(compare)
   }, [items, selectedId])
   const updated = updatedAt ? new Date(updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
-  const fullSummary = role === 'staff' ? '/inbox' : '/reports'
+  const differCount = items.filter(item => item.difference !== null && item.difference !== 0).length
   return (
     <Card className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-5" aria-labelledby="count-stock-summary">
-      <div>
-        <h2 id="count-stock-summary" className="text-h3 font-semibold">Stock summary</h2>
-        <p className="text-body-sm text-fg-secondary">Counted vs recorded</p>
+      <style>{`@keyframes count-summary-row-pulse { 0% { box-shadow: inset 2px 0 var(--accent-fill), 0 0 0 2px color-mix(in srgb, var(--accent-fill) 28%, transparent); } 100% { box-shadow: inset 2px 0 transparent, 0 0 0 0 transparent; } } @media (prefers-reduced-motion: reduce) { .count-summary-row-pulse { animation: none !important; } }`}</style>
+      <div className="flex items-start justify-between gap-3">
+        <div className="hidden lg:block">
+          <h2 id="count-stock-summary" className="text-h3 font-semibold">Count progress</h2>
+          <p className="text-body-sm text-fg-secondary">Counted vs recorded</p>
+        </div>
+        <button type="button" className="min-h-11 min-w-0 flex-1 text-left text-[13px] font-medium text-fg lg:hidden" onClick={() => setCompactOpen(open => !open)} aria-expanded={compactOpen} aria-label={`${matches} of ${total} match · ${differCount} differ · ${compactOpen ? 'Hide progress' : 'View progress'}`}>
+          <span id="count-stock-summary">{matches} of {total} match · {differCount} differ · <span className="text-accent-text">{compactOpen ? 'Hide progress' : 'View progress'}</span></span>
+        </button>
+        <p className="hidden shrink-0 text-right text-caption text-fg-tertiary lg:block"><span className="block">Last updated</span><time>{updated}</time></p>
       </div>
-      {loading ? <div aria-busy="true" aria-label="Loading stock summary" className="flex flex-col gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-14 animate-pulse rounded-[10px] bg-elevated" />)}</div>
+      {loading ? <div aria-busy="true" aria-label="Loading stock summary" className="flex flex-col gap-4">
+        {[1, 2, 3].map(i => <div key={i} className="grid min-h-[60px] grid-cols-[36px_1fr_76px_16px] grid-rows-[22px_20px] items-center gap-x-3 gap-y-1 rounded-[10px] px-2 py-1.5">
+          <span className="row-span-2 size-9 animate-pulse rounded-full bg-elevated" />
+          <span className="h-4 animate-pulse rounded bg-elevated" />
+          <span className="col-start-3 row-start-1 h-4 animate-pulse rounded bg-elevated" />
+          <span className="row-span-2 size-4 animate-pulse rounded bg-elevated" />
+          <span className="col-start-2 col-span-2 row-start-2 h-3 animate-pulse rounded bg-elevated" />
+        </div>)}
+      </div>
         : error ? <ErrorNotice title="Could not load stock summary" description={error} onRetry={onRetry} />
           : <>
-            <p className="num text-h2 font-semibold" data-testid="text-stock-matches">{matches} of {total} match</p>
-            <button type="button" className="min-h-11 self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline lg:hidden" onClick={() => setCompactOpen((open) => !open)} aria-expanded={compactOpen}>{compactOpen ? 'Hide full summary' : 'View full summary'}</button>
-            {items.length === 0 ? <p className="text-body-sm text-fg-secondary">No products yet. Add your first product.</p>
-              : <ul className={cn('flex-col divide-y divide-line', compactOpen ? 'flex' : 'hidden lg:flex')} aria-label="Products counted vs recorded">
-                {visible.map((item) => <SummaryRow key={item.productId} item={item} selected={item.productId === selectedId} />)}
+            <div className="hidden items-baseline justify-between gap-3 lg:flex">
+              <p className="num text-h2 font-semibold" data-testid="text-stock-matches">{matches} of {total} match</p>
+              <p className="text-caption text-fg-secondary">{differCount} differ</p>
+            </div>
+            {items.length === 0 ? <p className={cn('text-body-sm text-fg-secondary', compactOpen ? 'block' : 'hidden lg:block')}>No products yet. Add your first product.</p>
+              : <ul className={cn('max-h-[min(60vh,480px)] flex-col gap-4 overflow-y-auto pr-1', compactOpen ? 'flex' : 'hidden lg:flex')} aria-label="Products counted vs recorded">
+                {visible.map(item => <SummaryRow key={item.productId} item={item} selected={item.productId === selectedId} pulse={item.productId === updatedProductId} />)}
               </ul>}
-            <p className="text-caption text-fg-tertiary">Last updated {updated}</p>
-            <Link href={fullSummary} className="self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">View full summary <ArrowRight className="inline size-4" aria-hidden="true" /></Link>
+            {role !== 'staff' && <Link href="/reports" className="mt-1 min-h-11 self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">View all {total} products <ArrowRight className="inline size-4" aria-hidden="true" /></Link>}
           </>}
     </Card>
   )
 }
 
-function SummaryRow({ item, selected }: { item: StockSummaryItem; selected: boolean }) {
+function SummaryRow({ item, selected, pulse }: { item: StockSummaryItem; selected: boolean; pulse: boolean }) {
   const counted = item.counted ?? 0
-  const denominator = Math.max(item.recorded, counted, 1)
-  const progress = item.counted === null ? 0 : Math.min(100, Math.round(counted / denominator * 100))
+  const progress = item.counted === null ? 0 : item.recorded === 0 ? (counted > 0 ? 100 : 0) : Math.min(100, Math.round(counted / item.recorded * 100))
   const difference = item.difference
-  const status = item.status === 'not_counted'
-    ? <Pill tone="neutral" icon={AlertTriangle}>Not counted</Pill>
+  const percent = difference === null || item.recorded === 0 ? (difference && difference > 0 ? '∞' : '0') : String(Math.round(Math.abs(difference / item.recorded * 100)))
+  const status = difference === null
+    ? <span className="inline-flex items-center gap-1.5 text-[13px] font-medium leading-5 text-fg-tertiary"><Minus className="size-4" aria-hidden="true" />Not counted</span>
     : difference === 0
-      ? <Pill tone="success" icon={CheckCircle2}>Matches</Pill>
-      : difference! < 0
-        ? <span className="inline-flex items-center gap-1.5 text-caption font-medium text-danger"><AlertTriangle className="size-3.5" aria-hidden="true" />Short by {Math.abs(difference!)}</span>
-        : <span className="inline-flex items-center gap-1.5 text-caption font-medium text-accent-text"><ArrowUpRight className="size-3.5 text-fg-secondary" aria-hidden="true" />More by {difference}</span>
+      ? <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold leading-5 text-success"><CheckCircle2 className="size-4" aria-hidden="true" />Match</span>
+      : <span className={cn('flex flex-col items-end text-right text-[14px] font-semibold leading-5', difference < 0 ? 'text-danger' : 'text-accent-text')}>
+          <span className="inline-flex items-center gap-1.5">{difference < 0 ? <ArrowDown className="size-4" aria-hidden="true" /> : <ArrowUp className="size-4 text-fg-secondary" aria-hidden="true" />}{difference < 0 ? '−' : '+'}{percent}%</span>
+          <span className="text-[11px] font-normal leading-4 text-fg-secondary">{difference < 0 ? '−' : '+'}{Math.abs(difference)} units</span>
+        </span>
   return (
     <li>
-      <Link href={`/reports?product=${encodeURIComponent(item.productId)}`} className={cn('flex min-h-11 flex-col gap-1.5 rounded-[10px] px-2 py-3 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent-text', selected && 'bg-accent-fill/10 ring-1 ring-accent-text')} data-testid={`link-summary-product-${item.productId}`}>
-        <span className="flex min-w-0 items-center justify-between gap-2"><span className="truncate text-body-sm font-medium">{item.name}</span>{item.evidenceMissing && <span className="shrink-0 rounded-full tint-warning px-2 py-0.5 text-caption text-warning">Evidence missing</span>}</span>
-        <span className="num text-caption text-fg-secondary">{item.counted === null ? 'Not counted' : `${item.counted} counted · ${item.recorded} recorded`}</span>
-        <span className="h-1.5 w-full overflow-hidden rounded-full bg-elevated" role="progressbar" aria-label={`${item.name} counted stock`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span className="block h-full rounded-full bg-accent-fill" style={{ width: `${progress}%` }} /></span>
-        {status}
+      <Link href={`/reports?product=${encodeURIComponent(item.productId)}`} title={item.name} aria-label={`${item.name}; ${item.counted === null ? 'not counted' : `${item.counted} counted of ${item.recorded} recorded`}; open in Summary`} className={cn('group grid min-h-[60px] grid-cols-[36px_minmax(0,1fr)_auto_16px] grid-rows-[22px_20px] items-center gap-x-3 gap-y-1 rounded-[10px] border-l-2 px-2 py-1.5 transition-colors hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent-text', selected ? 'border-l-accent-fill bg-elevated' : 'border-l-transparent', pulse && 'count-summary-row-pulse')} data-testid={`link-summary-product-${item.productId}`} data-count-pulse={pulse || undefined}>
+        <span aria-hidden="true" className="row-span-2 flex size-9 items-center justify-center rounded-full bg-elevated text-body-sm font-semibold text-fg-secondary">{item.name.trim().charAt(0).toUpperCase()}</span>
+        <span className="min-w-0 truncate text-[15px] font-medium leading-5" title={item.name}>{item.name}</span>
+        <span className="col-start-3 row-start-1 flex items-center">{status}</span>
+        <ChevronRight className="row-span-2 col-start-4 row-start-1 size-4 text-fg-tertiary" aria-hidden="true" />
+        <span className="col-start-2 col-span-2 row-start-2 flex min-w-0 items-center gap-2">
+          <span className="num shrink-0 text-[13px] leading-5 text-fg-secondary">{item.counted === null ? `— / ${item.recorded}` : `${item.counted} / ${item.recorded}`}</span>
+          <span className="relative h-1 w-full min-w-8 overflow-visible rounded-full bg-elevated" role="progressbar" aria-label={`${item.name} counted stock`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+            <span className="block h-full rounded-full bg-accent-fill" style={{ width: `${progress}%` }} />
+            {item.counted !== null && item.counted > item.recorded && <span aria-hidden="true" className="absolute right-0 top-1/2 h-2 w-px -translate-y-1/2 bg-accent-text" />}
+          </span>
+        </span>
       </Link>
     </li>
   )
