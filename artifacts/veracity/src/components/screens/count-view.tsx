@@ -372,9 +372,9 @@ function SummaryRow({ item, selected, pulse }: { item: StockSummaryItem; selecte
     ? <span className="inline-flex items-center gap-1.5 text-[13px] font-medium leading-5 text-fg-tertiary"><Minus className="size-4" aria-hidden="true" />Not counted</span>
     : difference === 0
       ? <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold leading-5 text-success"><CheckCircle2 className="size-4" aria-hidden="true" />Match</span>
-      : <span className={cn('flex flex-col items-end text-right text-[14px] font-semibold leading-5', difference < 0 ? 'text-danger' : 'text-accent-text')}>
-          <span className="inline-flex items-center gap-1.5">{difference < 0 ? <CircleMinus className="size-4" aria-hidden="true" /> : <CirclePlus className="size-4 text-fg-secondary" aria-hidden="true" />}{difference < 0 ? '−' : '+'}{percent}%</span>
-          <span className="text-[11px] font-normal leading-4 text-fg-secondary">{difference < 0 ? '−' : '+'}{Math.abs(difference)} units</span>
+      : <span className={cn('flex flex-col items-end text-right text-[14px] font-semibold leading-5', difference < 0 ? 'text-danger' : 'text-success')}>
+          <span className="inline-flex items-center gap-1.5">{difference < 0 ? <CircleMinus className="size-4" aria-hidden="true" /> : <CirclePlus className="size-4" aria-hidden="true" />}{difference < 0 ? '−' : '+'}{percent}%</span>
+          <span className={cn('text-[11px] font-normal leading-4', difference < 0 ? 'text-fg-secondary' : 'text-success')}>{difference < 0 ? '−' : '+'}{Math.abs(difference)} units</span>
         </span>
   return (
     <li>
@@ -384,10 +384,9 @@ function SummaryRow({ item, selected, pulse }: { item: StockSummaryItem; selecte
         <span className="col-start-3 row-start-1 flex items-center">{status}</span>
         <span className="col-start-2 col-span-2 row-start-2 flex min-w-0 items-center gap-2">
           <span className="num shrink-0 text-[13px] leading-5 text-fg-secondary">{item.counted === null ? `— / ${item.recorded}` : `${item.counted} / ${item.recorded}`}</span>
-          <span className="relative h-2.5 w-full min-w-8 overflow-hidden rounded-full bg-elevated/75 shadow-inner ring-1 ring-inset ring-line/70" role="progressbar" aria-label={`${item.name} counted stock`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
-            <span className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent-fill via-accent-text to-accent-fill shadow-[0_0_10px_color-mix(in_srgb,var(--accent-fill)_35%,transparent)] transition-[width] duration-500 ease-out" style={{ width: `${progress}%` }} />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-white/15" />
-            {item.counted !== null && item.counted > item.recorded && <span aria-hidden="true" className="absolute right-0 top-0 h-full w-0.5 bg-accent-text shadow-[0_0_6px_var(--accent-text)]" />}
+          <span className="relative h-1.5 w-full min-w-8 overflow-hidden rounded-full bg-elevated" role="progressbar" aria-label={`${item.name} counted stock`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+            <span className="block h-full rounded-full bg-accent-fill" style={{ width: `${progress}%` }} />
+            {item.counted !== null && item.counted > item.recorded && <span aria-hidden="true" className="absolute right-0 top-1/2 h-2 w-px -translate-y-1/2 bg-accent-text" />}
           </span>
         </span>
       </Link>
