@@ -15,7 +15,7 @@ import { ROLE_INFO } from '@/lib/data'
 import { useApp } from './app-provider'
 
 export function RoleSwitcher() {
-  const { role, changeRole, user } = useApp()
+  const { role, changeRole } = useApp()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const leave = async () => {
@@ -28,7 +28,6 @@ export function RoleSwitcher() {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger render={<Button variant="secondary" disabled={busy} aria-label={`Role: ${ROLE_INFO[role].label}. Change role`} />}>
         <UserCircle2 aria-hidden="true" />
-        <span className="hidden sm:inline">{user.name}</span>
         <span className="text-fg-secondary">{ROLE_INFO[role].label}</span>
         <ChevronDown className="size-4" aria-hidden="true" />
       </DropdownMenuTrigger>

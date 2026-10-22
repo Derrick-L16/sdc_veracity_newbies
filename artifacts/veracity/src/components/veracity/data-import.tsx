@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useApp, useUnsavedWork } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
@@ -21,16 +21,21 @@ function parseCSV(source: string): Record<string, string>[] {
   if (!headers?.length || new Set(headers).size !== headers.length) throw new Error('CSV requires unique column headers.')
   return rows.map(r => { if (r.length !== headers.length) throw new Error('CSV row has the wrong number of columns.'); return Object.fromEntries(headers.map((h,i) => [h,r[i].trim()])) })
 }
-export function DataImport() {
+export function DataImport({ onStateChange }: { onStateChange?: (state: { dirty: boolean; busy: boolean }) => void }) {
   const { role, refresh } = useApp()
   const [kind, setKind] = useState('products')
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
+  const [inputKey, setInputKey] = useState(0)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
   useUnsavedWork(Boolean(file || busy))
+  useEffect(() => { onStateChange?.({ dirty: Boolean(file), busy }) }, [file, busy, onStateChange])
   if (role !== 'manager') return null
   const upload = async () => {
     if (!file) return
     setBusy(true)
+    setMessage(''); setError('')
     try {
       if (file.size > 1500000) throw new Error('Use a CSV smaller than 1.5 MB.')
       const rows = parseCSV(await file.text()).map(row => {
@@ -40,16 +45,19 @@ export function DataImport() {
       const response = await fetch('/api/backend/imports', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ kind, rows }) })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error)
-      await refresh(); setFile(null); toast.success(`Imported ${result.imported} records.`)
-    } catch (e) { toast.error((e as Error).message) }
+      await refresh(); setFile(null); setInputKey(n => n + 1)
+      setMessage(`Imported ${result.imported} records.`); toast.success(`Imported ${result.imported} records.`)
+    } catch (e) { setError((e as Error).message); toast.error((e as Error).message) }
     finally { setBusy(false) }
   }
   return <Card className="flex flex-col gap-4 p-5">
     <h2 className="text-h3 font-semibold">Connected records</h2>
     <p className="text-body-sm text-fg-secondary">Import your inventory first, then unposted movements. Imports add records; they never overwrite stock. This is a local CSV connector, not a live Orbyte connection.</p>
-    <select aria-label="Import type" className="h-12 rounded-[12px] border border-line bg-elevated px-4" value={kind} onChange={e => setKind(e.target.value)}><option value="products">Inventory products</option><option value="movements">Unposted stock movements</option></select>
+    <select aria-label="Import type" disabled={busy} className="h-12 rounded-[12px] border border-line bg-elevated px-4" value={kind} onChange={e => { setKind(e.target.value); setMessage(''); setError('') }}><option value="products">Inventory products</option><option value="movements">Unposted stock movements</option></select>
     <p className="break-all text-caption text-fg-secondary">{kind === 'products' ? 'Headers: id,name,recorded,unit_cost' : 'Headers: id,product_id,kind,quantity,occurred_at,conflict_ref'}</p>
-    <input type="file" accept=".csv,text/csv" aria-label="CSV records" onChange={e => setFile(e.target.files?.[0] || null)} className="text-body-sm" />
+    <input key={inputKey} type="file" disabled={busy} accept=".csv,text/csv" aria-label="CSV records" onChange={e => { setFile(e.target.files?.[0] || null); setMessage(''); setError('') }} className="w-full min-w-0 text-body-sm" />
+    {message && <p role="status" className="text-body-sm text-success">{message}</p>}
+    {error && <p role="alert" className="text-body-sm text-danger">{error}</p>}
     <Button disabled={!file || busy} onClick={upload}>{busy ? 'Importing…' : 'Import records'}</Button>
   </Card>
 }

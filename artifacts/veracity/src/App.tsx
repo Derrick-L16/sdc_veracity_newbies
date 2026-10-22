@@ -5,7 +5,6 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { AppProvider, useApp } from '@/components/app/app-provider'
 import { AppShell } from '@/components/app/app-shell'
 import { Toaster } from '@/components/ui/sonner'
-import { AccountView } from '@/components/screens/account-view'
 import { CaseDetailView } from '@/components/screens/case-detail-view'
 import { CountView } from '@/components/screens/count-view'
 import { HistoryView } from '@/components/screens/history-view'
@@ -61,7 +60,7 @@ function Router() {
         <Route path="/inbox"><Titled title="Inbox · Veracity"><InboxView /></Titled></Route>
         <Route path="/inbox/frames"><Titled title="Inbox frames · Veracity"><InboxFramesView /></Titled></Route>
         <Route path="/count"><Titled title="New count · Veracity"><CountView /></Titled></Route>
-        <Route path="/account"><Titled title="Account · Veracity"><AccountView /></Titled></Route>
+        <Route path="/account"><RoleLanding /></Route>
         <Route path="/cases/:id" component={CasePage} />
         <Route path="/history"><Titled title="History · Veracity"><HistoryView /></Titled></Route>
         <Route path="/reports"><Titled title="Weekly summary · Veracity"><WeeklyReportView /></Titled></Route>

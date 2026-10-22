@@ -23,3 +23,11 @@ Change role inside the app, rather than a production login system.
 
 **How to apply:** Keep the demo limitation visible. Do not expand this flow into
 Clerk, Replit Auth, registration or real account provisioning without a new request.
+
+The entry should feel like a simple login, not a role-permissions tutorial.
+
+**Why:** The user explicitly wanted just a role dropdown and Log in, and asked
+to remove role-responsibility explanations and the Account tab.
+
+**How to apply:** Keep entry concise and move operational tools to the relevant
+role's working page rather than rebuilding an Account/settings area.
