@@ -11,4 +11,8 @@ Treat earlier reports of conflicts, staged changes, or a pending merge as observ
 
 **Completion rule:** When authorized to finish a merge, do not stop after staging the resolved file. Complete the merge commit after reviewing its other staged changes, and verify that no merge is pending and that the expected incoming branch is an ancestor of the resulting commit.
 
+Stage and commit the reviewed resolution together before running long verification commands; test the committed merge afterwards.
+
+**Why:** A resolved, staged merge was again replaced by a clean pre-merge tree during verification. Completing the merge commit before verification preserved the combined history.
+
 **Why:** Resolving and staging only the launcher repeatedly left the user's Replit Pull workflow unfinished. Avoid describing a staged file resolution as a completed merge.

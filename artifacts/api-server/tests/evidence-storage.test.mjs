@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { PDFDocument } from "pdf-lib";
-import { verifyBytes, evidenceFile, EvidenceError } from "../src/lib/evidence-storage.ts";
+import { verifyBytes, evidenceFile, EvidenceError } from "../dist/test/evidence-storage.mjs";
 
 test("actual image decoding accepts JPEG and PNG, rejects MIME spoofing and truncation", async () => {
   const png = await sharp({ create: { width: 10, height: 10, channels: 3, background: "red" } }).png().toBuffer();

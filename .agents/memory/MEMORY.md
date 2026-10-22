@@ -5,6 +5,7 @@
 - [Role responsibilities](role-responsibilities.md) — restaurant/SME hierarchy means delegated duties, not inherited Owner mutation privileges.
 - [Merge state rechecks](merge-state-rechecks.md) — pending merge/index state has changed between turns; verify current state again before acting on approval.
 - [Product scope](product-scope.md) — AI is a future feature, not part of the current implementation or testing acceptance.
+- [Git provider authorization](git-provider-authorization.md) — a healthy connection record does not guarantee GitHub push access; Git Providers settings may require reconnection.
 - [Demo data hygiene](demo-data-hygiene.md) — preserve a user-imported demo dataset; mutating browser tests must not pollute the walkthrough database.
 - [Form contrast](form-contrast.md) — dark forms must retain readable text despite typography utilities; verify computed colors on actual screens.
 - [Malaysia date presentation](malaysia-date-presentation.md) — display event times as DD/MM/YYYY HH:MM:SS in Malaysia time; calendar dates stay DD/MM/YYYY.

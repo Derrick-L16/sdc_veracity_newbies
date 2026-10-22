@@ -101,4 +101,6 @@ export interface Product {
   id: string
   name: string
   recorded: number
+  unit_cost?: number
+  evidence_missing?: boolean
 }

@@ -32,10 +32,18 @@ test('import, count, approve, and reopen the Decision Passport on desktop and mo
   await page.getByRole('navigation').getByRole('link', { name: 'Count', exact: true }).first().click()
   await page.getByLabel('Product', { exact: true }).selectOption(productId)
   await page.getByLabel('Counted quantity', { exact: true }).fill('43')
+  const countResponse = page.waitForResponse(r => r.url().endsWith('/api/backend/counts') && r.request().method() === 'POST')
   await page.getByRole('button', { name: 'Submit count', exact: true }).click()
-  await expect(page).toHaveURL(/\/cases\/INV-/)
-  const casePath = new URL(page.url()).pathname
-  const id = casePath.split('/').at(-1)!
+  const caseData = await (await countResponse).json()
+  const id = caseData.id as string
+  await expect(page.getByRole('heading', { name: 'Upload evidence', level: 1 })).toBeVisible()
+  await page.getByRole('button', { name: 'Skip for now', exact: true }).click()
+  await expect(page.getByRole('heading', { name: new RegExp(`Case ${id} opened`) })).toBeVisible()
+  await page.getByTestId(`link-summary-product-${productId}`).click()
+  await expect(page).toHaveURL(new RegExp(`/reports\\?product=${productId}`))
+  await expect(page.getByRole('heading', { name: 'Product summary' })).toBeVisible()
+  await page.goto(`/cases/${id}`)
+  const casePath = `/cases/${id}`
   await expect(page.getByRole('main')).toContainText(name)
   await page.screenshot({ path: testInfo.outputPath('staff-case.png'), fullPage: true })
   await selectRole(page, 'Manager')

@@ -6,8 +6,9 @@ import { readJson } from '@/lib/read-json'
 import { OPEN_STATUSES, USERS } from '@/lib/data'
 import type { Decision, DecisionGuard, Product, Role, StockCase, User } from '@/lib/types'
 import type { StockSummary, StaffProgress } from '@/lib/stock'
+import { createInventoryProduct, type ProductInput } from '@workspace/api-client-react'
 
-const EMPTY_SUMMARY: StockSummary = { total: 0, counts: { verified: 0, awaiting: 0, attention: 0, not_counted: 0 }, lastCount: null, missing: { units: 0, value: 0, explained: 0, unexplained: 0, items: [] } }
+const EMPTY_SUMMARY: StockSummary = { total: 0, counts: { verified: 0, awaiting: 0, attention: 0, not_counted: 0 }, matches: 0, items: [], updatedAt: '', lastCount: null, missing: { units: 0, value: 0, explained: 0, unexplained: 0, items: [] } }
 const EMPTY_PROGRESS: StaffProgress = { total: 0, counted: 0, matched: 0, differ: 0, lastSubmitted: null }
 interface Snapshot { user: User; cases: StockCase[]; products: Product[]; summary: StockSummary; progress: StaffProgress }
 interface AppState {
@@ -20,6 +21,7 @@ interface AppState {
   decide: (id: string, action: Decision['action'], reason: string, guard: DecisionGuard) => Promise<void>
   requestReview: (id: string, reason: string, guard: DecisionGuard) => Promise<void>
   reassess: (id: string) => Promise<void>
+  createProduct: (input: ProductInput) => Promise<Product>
   submitCount: (input: { product: string; recorded: number; counted: number; note: string }) => Promise<StockCase | null>
   findOpenCase: (product: string, counted: number) => StockCase | undefined
 }
@@ -116,12 +118,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const decide = useCallback(async (id: string, action: Decision['action'], reason: string, guard: DecisionGuard) => { await mutate(`cases/${id}/decisions`, { action, reason, ...guard }) }, [mutate])
   const requestReview = useCallback(async (id: string, reason: string, guard: DecisionGuard) => { await mutate(`cases/${id}/decisions`, { action: 'review', reason, ...guard }) }, [mutate])
   const reassess = useCallback(async (id: string) => { await mutate(`cases/${id}/reassess`, {}) }, [mutate])
+  const createProduct = useCallback(async (input: ProductInput) => {
+    const result = await createInventoryProduct(input)
+    try { await refresh() } catch { /* The create response is authoritative; refresh exposes its own error state. */ }
+    return result
+  }, [refresh])
   const submitCount = useCallback(async (input: { product: string; recorded: number; counted: number; note: string }) => {
-    const result = await api<StockCase | { matched: true }>('counts', input); await refresh(); return 'matched' in result ? null : result
+    const result = await api<StockCase | { matched: true }>('counts', input)
+    try { await refresh() } catch { /* The count result is authoritative; refresh exposes its own error state. */ }
+    return 'matched' in result ? null : result
   }, [refresh])
   const findOpenCase = useCallback((product: string, _counted: number) => cases.find(c => c.product === product && OPEN_STATUSES.includes(c.status)), [cases])
   const inboxCases = useMemo(() => cases.filter(c => OPEN_STATUSES.includes(c.status)), [cases])
-  return <AppContext.Provider value={{ role, user, authenticated, login, changeRole, registerUnsavedWork, cases, products, summary, progress, loading, error, refresh, inboxCases, getCase, decide, requestReview, reassess, submitCount, findOpenCase }}>{children}</AppContext.Provider>
+  return <AppContext.Provider value={{ role, user, authenticated, login, changeRole, registerUnsavedWork, cases, products, summary, progress, loading, error, refresh, inboxCases, getCase, decide, requestReview, reassess, createProduct, submitCount, findOpenCase }}>{children}</AppContext.Provider>
 }
 export function useApp() { const ctx = useContext(AppContext); if (!ctx) throw new Error('useApp must be used inside AppProvider'); return ctx }
 export function useUnsavedWork(dirty: boolean) {

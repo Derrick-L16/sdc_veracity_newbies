@@ -1,9 +1,10 @@
-import { useLocation, useSearch } from 'wouter'
-import { Lock, RefreshCw } from 'lucide-react'
+import { Link, useLocation, useSearch } from 'wouter'
+import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Lock, RefreshCw } from 'lucide-react'
 import type { InventorySummaryReport } from '@workspace/api-client-react'
 import { useApp } from '@/components/app/app-provider'
-import { EmptyState, ErrorNotice, PageHeader } from '@/components/veracity/primitives'
-import { Button } from '@/components/ui/button'
+import { Card, EmptyState, ErrorNotice, PageHeader } from '@/components/veracity/primitives'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Pill } from '@/components/veracity/badges'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PeriodPicker } from '@/components/reports/period-picker'
 import { ReportMetrics } from '@/components/reports/report-metrics'
@@ -16,10 +17,12 @@ import { currentStart, isPeriod, normalizeDate, PERIOD_NOUN, periodTitle, plural
 import { useInventoryReport } from '@/hooks/use-inventory-report'
 
 export function WeeklyReportView() {
-  const { role, loading: appLoading, error: appError } = useApp()
+  const { role, loading: appLoading, error: appError, summary } = useApp()
   const allowed = role === 'manager' || role === 'owner'
   const params = new URLSearchParams(useSearch())
   const [, navigate] = useLocation()
+  const productId = params.get('product')
+  const selectedProduct = productId ? summary.items.find(item => item.productId === productId) : undefined
   const rawPeriod = params.get('period')
   const period: ReportPeriod = isPeriod(rawPeriod) ? rawPeriod : 'weekly'
   const { date, error: dateError } = normalizeDate(period, params.get('date') ?? params.get('week'))
@@ -38,6 +41,11 @@ export function WeeklyReportView() {
   }
 
   if (appLoading) return <ReportSkeleton />
+  if (productId) {
+    return selectedProduct
+      ? <ProductSummaryDetail item={selectedProduct} canViewSummary={allowed} />
+      : <ErrorNotice title="Product not found" description="Refresh the stock summary and try again." />
+  }
   if (!allowed) {
     return <EmptyState icon={Lock} title="Managers and owners only" description="Summaries include decisions and backlog across the store. Switch to a manager or owner role to view them." />
   }
@@ -123,3 +131,59 @@ function ReportSkeleton() {
     </div>
   )
 }
+
+const signed = (n: number) => n > 0 ? `+${n}` : `${n}`
+
+function ProductSummaryDetail({ item, canViewSummary }: { item: ReturnType<typeof useApp>['summary']['items'][number]; canViewSummary: boolean }) {
+  const status = item.status === 'not_counted'
+    ? <Pill tone="neutral" icon={AlertTriangle}>Not counted</Pill>
+    : item.difference === 0
+      ? <Pill tone="success" icon={CheckCircle2}>Matches</Pill>
+      : item.difference! < 0
+        ? <span className="inline-flex items-center gap-2 text-body-sm font-medium text-danger"><AlertTriangle className="size-4" aria-hidden="true" />Short by {Math.abs(item.difference!)}</span>
+        : <span className="inline-flex items-center gap-2 text-body-sm font-medium text-accent-text"><ArrowUpRight className="size-4 text-fg-secondary" aria-hidden="true" />More by {item.difference}</span>
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader title="Product summary" subtitle="Current counted quantity compared with the recorded stock.">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/count" className={buttonVariants({ variant: 'secondary' })}><ArrowLeft aria-hidden="true" />Back to count</Link>
+          {canViewSummary && (
+            <Link href="/reports" data-testid="button-back-to-summary" className={buttonVariants({ variant: 'secondary' })}>
+              Back to summary<ArrowRight aria-hidden="true" />
+            </Link>
+          )}
+        </div>
+      </PageHeader>
+      <Card className="flex flex-col gap-4" data-testid={`card-product-summary-${item.productId}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-h2 font-semibold">{item.name}</h2>
+          {item.evidenceMissing && <Pill tone="warning" icon={AlertTriangle}>Evidence missing</Pill>}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Metric label="Counted" value={item.counted ?? 0} note={item.counted === null ? 'No count submitted' : 'Latest observed quantity'} testid={`product-counted-${item.productId}`} />
+          <Metric label="Recorded" value={item.recorded} note="Current inventory record" testid={`product-recorded-${item.productId}`} />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-elevated p-3">
+          <span className="text-body-sm text-fg-secondary">Difference</span>
+          <div className="flex items-center gap-3"><span className="num text-h3 font-semibold">{item.difference === null ? '—' : signed(item.difference)}</span>{status}</div>
+        </div>
+        {item.caseId && <Link href={`/cases/${item.caseId}`} className="self-start text-body-sm font-medium text-accent-text underline-offset-4 hover:underline">View case {item.caseId} <ArrowRight className="inline size-4" aria-hidden="true" /></Link>}
+      </Card>
+    </div>
+  )
+}
+
+function Metric({ label, value, note, tone = 'default', badge, testid }: { label: string; value: number; note: string; tone?: 'default' | 'warn'; badge?: string; testid: string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-[16px] border border-line bg-surface p-4">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-caption font-medium text-fg-secondary">{label}</span>
+        {badge && <span className="num rounded-full tint-warning px-2 py-0.5 text-[11px] font-semibold text-warning">{badge}</span>}
+      </div>
+      <span className={cn('num text-display leading-none font-semibold tracking-tight', tone === 'warn' && 'text-warning')} data-testid={`stat-${testid}`}>{value}</span>
+      <span className="text-caption text-fg-tertiary">{note}</span>
+    </div>
+  )
+}
+
+const tooltipStyle = { background: 'var(--bg-elevated)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--text-primary)', fontSize: 12 }

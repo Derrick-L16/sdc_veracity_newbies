@@ -49,9 +49,9 @@ export function DecisionPanel({ decisions: d, noun }: { decisions: WeeklyInvento
               <button type="button" onMouseEnter={() => setActive(p.key)} onMouseLeave={() => setActive(null)} onFocus={() => setActive(p.key)} onBlur={() => setActive(null)}
                 className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-body-sm hover:bg-elevated focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
                 <span className="size-2.5 rounded-sm" style={{ background: p.color }} aria-hidden="true" />
-                <span className="flex-1 text-fg-secondary">{p.name}</span>
-                <span className="num font-semibold" data-testid={`text-decisions-${p.key}`}>{d[p.key]}</span>
-                <span className="num w-10 text-right text-caption text-fg-tertiary">{total ? pct(d[p.key]) : '-'}</span>
+                <span className="flex-1 text-fg-secondary" style={{ color: active === p.key ? p.color : undefined }}>{p.name}</span>
+                <span className="num font-semibold" style={{ color: active === p.key ? p.color : undefined }} data-testid={`text-decisions-${p.key}`}>{d[p.key]}</span>
+                <span className="num w-10 text-right text-caption text-fg-tertiary" style={{ color: active === p.key ? p.color : undefined }}>{total ? pct(d[p.key]) : '-'}</span>
               </button>
             </li>
           ))}
@@ -60,7 +60,7 @@ export function DecisionPanel({ decisions: d, noun }: { decisions: WeeklyInvento
       <div aria-live="polite" data-testid="panel-decision-detail" className="min-h-[4.25rem] rounded-[14px] border border-line bg-elevated px-4 py-3 text-body-sm text-white">
         {sel ? (
           <>
-            <p className="num font-semibold">{sel.name}: {d[sel.key]} of {total} ({pct(d[sel.key])})</p>
+            <p className="num font-semibold" style={{ color: sel.color }}>{sel.name}: {d[sel.key]} of {total} ({pct(d[sel.key])})</p>
             <p className="text-white">{sel.help}</p>
           </>
         ) : (

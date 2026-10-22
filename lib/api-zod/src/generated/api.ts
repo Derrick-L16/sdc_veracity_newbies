@@ -237,6 +237,48 @@ export const ImportInventoryRecordsResponse = zod.record(zod.string(), zod.unkno
 
 
 /**
+ * @summary Create one inventory product as staff or manager
+ */
+export const createInventoryProductBodyNameMax = 4000;
+
+export const createInventoryProductBodyRecordedMin = 0;
+export const createInventoryProductBodyRecordedMax = 1000000000;
+
+export const createInventoryProductBodyUnitCostDefault = 0;
+export const createInventoryProductBodyUnitCostMin = 0;
+export const createInventoryProductBodyUnitCostMax = 1000000000;
+
+export const createInventoryProductBodyNoteMax = 4000;
+
+
+
+export const CreateInventoryProductBody = zod.object({
+  "name": zod.string().min(1).max(createInventoryProductBodyNameMax),
+  "recorded": zod.number().int().min(createInventoryProductBodyRecordedMin).max(createInventoryProductBodyRecordedMax),
+  "unit_cost": zod.number().min(createInventoryProductBodyUnitCostMin).max(createInventoryProductBodyUnitCostMax).default(createInventoryProductBodyUnitCostDefault),
+  "note": zod.string().max(createInventoryProductBodyNoteMax).optional()
+})
+
+export const createInventoryProductResponseRecordedMin = 0;
+export const createInventoryProductResponseRecordedMax = 1000000000;
+
+export const createInventoryProductResponseUnitCostMin = 0;
+export const createInventoryProductResponseUnitCostMax = 1000000000;
+
+
+
+
+export const CreateInventoryProductResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "recorded": zod.number().int().min(createInventoryProductResponseRecordedMin).max(createInventoryProductResponseRecordedMax),
+  "unit_cost": zod.number().min(createInventoryProductResponseUnitCostMin).max(createInventoryProductResponseUnitCostMax),
+  "revision": zod.number().int().min(1),
+  "evidence_missing": zod.boolean()
+})
+
+
+/**
  * @summary Record a physical count and assess any discrepancy
  */
 export const submitInventoryCountBodyRecordedMin = 0;

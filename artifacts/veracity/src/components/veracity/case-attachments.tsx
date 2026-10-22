@@ -7,8 +7,9 @@ import { formatDateTime } from '@/lib/format'
 import type { DecisionVersion, StockCase } from '@/lib/types'
 import { attachmentURL, uploadEvidence, type UploadAttempt } from '@/lib/evidence-upload'
 
-export function CaseAttachments({ stockCase, viewed, historical = false, readOnly = false }: {
+export function CaseAttachments({ stockCase, viewed, historical = false, readOnly = false, helperText, completionMode = false, descriptionClassName = '', onDone }: {
   stockCase: StockCase; viewed: DecisionVersion; historical?: boolean; readOnly?: boolean
+  helperText?: string; completionMode?: boolean; descriptionClassName?: string; onDone?: () => void
 }) {
   const { role, user, refresh } = useApp()
   const fieldId = useId()
@@ -36,14 +37,18 @@ export function CaseAttachments({ stockCase, viewed, historical = false, readOnl
     if (!file || busy) return
     setError(''); setSaved(false)
     const extensions: Record<string, RegExp> = { 'image/jpeg': /\.jpe?g$/i, 'image/png': /\.png$/i, 'application/pdf': /\.pdf$/i }
-    if (!extensions[file.type]?.test(file.name)) { setError('Choose a JPEG, PNG or PDF with a matching filename extension.'); return }
-    if (file.size === 0 || file.size > 10 * 1024 * 1024) { setError('Choose a nonempty file no larger than 10 MB.'); return }
+    if (!extensions[file.type]?.test(file.name)) { setError('Use a JPG, PNG or PDF'); return }
+    if (file.size > 10 * 1024 * 1024) { setError('File is over 10 MB'); return }
+    if (file.size === 0) { setError('Choose a nonempty file.'); return }
     setBusy(true)
     try {
       await uploadEvidence(stockCase.id, viewed.version, file, description, attempt.current, (value, label) => { setProgress(value); setPhase(label) })
-      setSaved(true); setFile(null); setDescription('')
-      if (input.current) input.current.value = ''
-      attempt.current = { requestKey: crypto.randomUUID() }
+      setSaved(true)
+      if (!completionMode) {
+        setFile(null); setDescription('')
+        if (input.current) input.current.value = ''
+        attempt.current = { requestKey: crypto.randomUUID() }
+      }
       try { await refresh() } catch { setError('Evidence was saved, but the list could not refresh. Reload this case to see it; do not upload it again.') }
     } catch (e) {
       setError((e as Error).message)
@@ -52,6 +57,7 @@ export function CaseAttachments({ stockCase, viewed, historical = false, readOnl
   return (
     <Card className="flex min-w-0 flex-col gap-4 p-5 md:p-6">
       <h2 className="flex items-center gap-2 text-h3 font-semibold"><Paperclip className="size-5" aria-hidden="true" />Case documents</h2>
+      {helperText && <p className="text-body-sm text-fg-secondary">{helperText}</p>}
       <p className="text-body-sm text-fg-secondary">Photos and PDFs support human review only. They do not reconcile quantities, mark a discrepancy supported, or approve a case.</p>
       {historical && <p className="text-body-sm text-fg-secondary">Only documents available when assessment v{viewed.version} was created are shown.</p>}
       {attachments.length ? <ul className="flex flex-col gap-3" aria-label="Saved case evidence">
@@ -101,11 +107,18 @@ export function CaseAttachments({ stockCase, viewed, historical = false, readOnl
         </div>
         <label htmlFor={`${fieldId}-description`} className="text-body-sm font-medium">Description (optional)</label>
         <textarea id={`${fieldId}-description`} value={description} maxLength={1000} disabled={busy} rows={2}
-          onChange={e => { setDescription(e.target.value); newAttempt() }} className="rounded-lg border border-line bg-elevated p-3 text-body-sm" />
+          onChange={e => { setDescription(e.target.value); newAttempt() }} className={`rounded-lg border border-line bg-elevated p-3 text-body-sm text-white ${descriptionClassName}`} />
         {busy && <progress aria-label="Evidence upload progress" max={100} value={progress} className="w-full" />}
         <p role="status" className="text-body-sm text-fg-secondary">{busy ? `${phase} ${progress}%` : saved ? 'Evidence saved for human review.' : ''}</p>
         {error && <p role="alert" className="break-words text-body-sm text-danger">{error}</p>}
-        <Button type="submit" disabled={!file || busy} className="self-start"><Upload aria-hidden="true" />{busy ? 'Uploading…' : error && !saved ? 'Retry upload' : 'Upload evidence'}</Button>
+        {saved && completionMode ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p role="status" className="text-body-sm text-success">Evidence saved: {file?.name}</p>
+            <Button type="button" onClick={onDone} className="min-h-11">Done</Button>
+          </div>
+        ) : (
+          <Button type="submit" disabled={!file || busy} title={!file ? 'Choose a file first' : undefined} className="self-start"><Upload aria-hidden="true" />{busy ? 'Uploading…' : error && !saved ? 'Retry upload' : 'Upload evidence'}</Button>
+        )}
       </form> : <p className="text-body-sm text-fg-secondary">{historical ? 'Historical evidence is read-only.' : closed || readOnly ? 'Evidence is read-only after a decision.' : 'Owners have read-only evidence access.'}</p>}
     </Card>
   )
