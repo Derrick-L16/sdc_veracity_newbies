@@ -1,6 +1,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useLocation } from 'wouter'
+import { roleHome } from '@/lib/role-home'
 import { OPEN_STATUSES, USERS } from '@/lib/data'
 import type { Decision, DecisionGuard, Product, Role, StockCase, User } from '@/lib/types'
 import type { StockSummary, StaffProgress } from '@/lib/stock'
@@ -27,6 +29,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data
 }
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [, navigate] = useLocation()
   const [snapshot, setSnapshot] = useState<Snapshot>({ user: USERS.manager, cases: [], products: [], summary: EMPTY_SUMMARY, progress: EMPTY_PROGRESS })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,11 +56,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (switching.current) return
     switching.current = true; generation.current++; setLoading(true)
     void (async () => {
-      try { await api('session', { role }); await refresh() }
+      try {
+        const session = await api<{ user: User }>('session', { role })
+        // Once the server changes identity, never retain another role's data,
+        // including if the following state request fails.
+        setSnapshot({ user: session.user, cases: [], products: [], summary: EMPTY_SUMMARY, progress: EMPTY_PROGRESS })
+        setError(null)
+        await refresh()
+        navigate(roleHome(session.user.role), { replace: true })
+      }
       catch (e) { toast.error((e as Error).message) }
       finally { switching.current = false; setLoading(false) }
     })()
-  }, [refresh])
+  }, [refresh, navigate])
   const { cases, products, user, summary, progress } = snapshot
   const role = user.role
   const getCase = useCallback((id: string) => cases.find(c => c.id === id), [cases])

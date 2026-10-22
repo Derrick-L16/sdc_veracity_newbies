@@ -28,6 +28,7 @@ test("import, staff count, manager approval and persistent Decision Passport", a
   await page.getByRole("button", { name: /Role: Manager/ }).click();
   await page.getByRole("menuitemradio", { name: /Staff/ }).click();
   await expect(page.getByRole("button", { name: /Role: Staff/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/work$/);
   await page.goto("/count");
   await page.getByLabel("Product", { exact: true }).selectOption(id);
   await page.getByLabel("Counted quantity").fill("43");
@@ -39,6 +40,8 @@ test("import, staff count, manager approval and persistent Decision Passport", a
   await page.getByRole("button", { name: /Role: Staff/ }).click();
   await page.getByRole("menuitemradio", { name: /Manager/ }).click();
   await expect(page.getByRole("button", { name: /Role: Manager/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/inbox$/);
+  await page.goto(`/cases/${caseId}`);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Approve", exact: true }).filter({ visible: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -58,6 +61,7 @@ test("import, staff count, manager approval and persistent Decision Passport", a
   await page.getByRole("button", { name: /Role: Manager/ }).click();
   await page.getByRole("menuitemradio", { name: /Owner/ }).click();
   await expect(page.getByRole("button", { name: /Role: Owner/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/reports$/);
   await page.goto("/count");
   await expect(page.getByText("Owners can't submit counts.")).toBeVisible();
   await page.goto("/inbox/frames");

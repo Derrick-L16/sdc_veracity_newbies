@@ -5,7 +5,7 @@ import path from "node:path";
 const requireServer = createRequire(path.resolve("artifacts/api-server/package.json"));
 const { PDFDocument } = requireServer("pdf-lib");
 const sharp = requireServer("sharp");
-const origin = { Origin: "http://localhost" };
+const origin = { Origin: process.env.PLAYWRIGHT_BASE_URL || "http://localhost" };
 
 test("private evidence upload, retry, stale review, historical snapshots and Passport", async ({ page, context, playwright }) => {
   test.setTimeout(180000);
@@ -26,7 +26,7 @@ test("private evidence upload, retry, stale review, historical snapshots and Pas
   const base = `/api/evidence/cases/${c.id}`;
   const metadata = { filename: "receipt.pdf", contentType: "application/pdf", size: 200, description: "", version: 1, requestKey: crypto.randomUUID() };
   expect((await post(`/api/evidence/cases/${other.id}/uploads`, metadata)).status()).toBe(404);
-  const anonymous = await playwright.request.newContext({ baseURL: "http://localhost:80" });
+  const anonymous = await playwright.request.newContext({ baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:80" });
   expect((await anonymous.post(`${base}/uploads`, { data: metadata, headers: origin })).status()).toBe(401);
   await anonymous.dispose();
   expect((await post("/api/backend/evidence/anything/uploads", metadata)).status()).toBe(404);
@@ -89,14 +89,19 @@ test("private evidence upload, retry, stale review, historical snapshots and Pas
     const response = await post(`${base}/uploads`, { ...metadata, requestKey: crypto.randomUUID(), filename: name, contentType: type, size: declaredSize });
     expect(response.status()).toBe(200);
     const ticket = await response.json();
-    const transferred = await api.put(ticket.uploadURL, { data, headers: { "Content-Type": type } });
+    const transferred = await api.put(ticket.uploadURL, { data, headers: { "Content-Type": type, ...origin } });
+    if (ticket.uploadURL.startsWith("/") && data.length > 10485760) {
+      // Local transfer enforces the limit before anything is staged.
+      expect(transferred.status()).toBe(413);
+      return null;
+    }
     expect(transferred.ok()).toBeTruthy();
     return ticket.id as string;
   }
   const spoof = await stage(Buffer.from("not a PNG"), "spoof.png", "image/png");
   expect((await post(`${base}/uploads/${spoof}/finalize`)).status()).toBe(400);
   const oversized = await stage(Buffer.alloc(10485761), "oversized.pdf", "application/pdf", 100);
-  expect((await post(`${base}/uploads/${oversized}/finalize`)).status()).toBe(413);
+  if (oversized) expect((await post(`${base}/uploads/${oversized}/finalize`)).status()).toBe(413);
   expect((await post(`/api/backend/cases/${c.id}/reassess`)).ok()).toBeTruthy();
   // A historical version is rejected by the backend, not just hidden in the UI.
   expect((await post(`${base}/uploads`, { ...metadata, requestKey: crypto.randomUUID() })).status()).toBe(409);

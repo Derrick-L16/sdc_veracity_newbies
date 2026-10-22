@@ -31,7 +31,11 @@ router.all("/backend/*path", async (req, res): Promise<void> => {
     }
   }
   try {
-    const response = await fetch(`${getBackendUrl()}/${segments.join("/")}`, {
+    // Preserve the report's date filter; the original proxy dropped queries.
+    // Only this endpoint accepts a query, and Python validates its full shape.
+    const query = segments.join("/") === "reports/weekly" && req.originalUrl.includes("?")
+      ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+    const response = await fetch(`${getBackendUrl()}/${segments.join("/")}${query}`, {
       method: req.method,
       headers: { "Content-Type": "application/json", Cookie: req.get("cookie") || "" },
       body: req.method === "POST" ? JSON.stringify(req.body) : undefined,
