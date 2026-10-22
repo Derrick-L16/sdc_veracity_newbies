@@ -32,7 +32,7 @@ export function DemoLoginView() {
   }
 
   return (
-    <main className="flex min-h-[100dvh] items-center justify-center bg-base px-4 py-10">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-canvas px-4 py-10">
       <div className="flex w-full max-w-[440px] flex-col gap-6">
         <header className="flex flex-col gap-2">
           <span className="text-caption font-medium tracking-[0.12em] text-accent-text uppercase">Veracity</span>

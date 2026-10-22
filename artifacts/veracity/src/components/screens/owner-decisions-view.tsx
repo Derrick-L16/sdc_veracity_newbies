@@ -9,6 +9,7 @@ import { Card, EmptyState, ErrorNotice, LockNote, PageHeader } from '@/component
 import { CLOSED_STATUSES, ROLE_INFO } from '@/lib/data'
 import { formatSigned } from '@/lib/format'
 import { formatKl, isValidDateKey, klDateKey, klSortValue } from '@/lib/kl-time'
+import { DateInput } from '@/components/ui/date-input'
 import type { Decision, StockCase } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -127,11 +128,11 @@ function OwnerDecisions({ cases, error, refresh }: { cases: StockCase[]; error: 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1.5 text-body-sm text-fg-secondary">
             Decided from
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={FIELD} aria-invalid={!!(fromBad || reversed)} data-testid="input-date-from" />
+            <DateInput value={from} onChange={(e) => setFrom(e.target.value)} className={FIELD} aria-invalid={!!(fromBad || reversed)} data-testid="input-date-from" />
           </label>
           <label className="flex flex-col gap-1.5 text-body-sm text-fg-secondary">
             Decided to (inclusive)
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={FIELD} aria-invalid={!!(toBad || reversed)} data-testid="input-date-to" />
+            <DateInput value={to} onChange={(e) => setTo(e.target.value)} className={FIELD} aria-invalid={!!(toBad || reversed)} data-testid="input-date-to" />
           </label>
           <label className="flex flex-col gap-1.5 text-body-sm text-fg-secondary">
             Decided by

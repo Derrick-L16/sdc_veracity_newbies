@@ -9,7 +9,7 @@
   --font-sans: 'Inter', system-ui, sans-serif;
 
   /* Veracity tokens */
-  --color-base: var(--bg-base);
+  --color-canvas: var(--bg-base);
   --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
   --color-line: var(--line);
@@ -124,7 +124,7 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-base text-body text-fg font-sans antialiased;
+    @apply bg-canvas text-body text-fg font-sans antialiased;
     font-feature-settings: 'cv11';
   }
   :focus-visible {
@@ -142,6 +142,35 @@
     width: 0;
     height: 0;
   }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 1;
+  }
+  select option,
+  select optgroup {
+    color: var(--text-primary);
+    background-color: var(--bg-elevated);
+  }
+  /* Native date/time segments do not consistently inherit the input color. */
+  input::-webkit-datetime-edit,
+  input::-webkit-datetime-edit-fields-wrapper {
+    color: inherit;
+    -webkit-text-fill-color: currentColor;
+  }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text-primary);
+    caret-color: var(--text-primary);
+    box-shadow: 0 0 0 1000px var(--bg-elevated) inset;
+  }
+}
+
+/* Keep form text readable even when a typography utility supplies its own color. */
+:where(input, textarea, select) {
+  color: var(--text-primary);
+  caret-color: var(--text-primary);
 }
 
 @utility tint-* {

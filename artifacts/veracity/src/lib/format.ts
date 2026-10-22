@@ -1,17 +1,12 @@
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+import { formatKl } from './kl-time'
 
-/** Deterministic formatting (no locale APIs) to keep server and client output identical. */
+/** All event timestamps use Malaysia time, independently of the browser timezone. */
 export function formatDateTime(iso: string) {
-  if (!iso) return ''
-  const [date, time = '00:00'] = iso.split('T')
-  const [, m, d] = date.split('-').map(Number)
-  return `${d} ${MONTHS[m - 1]}, ${time.slice(0, 5)}`
+  return iso ? formatKl(iso) : ''
 }
 
 export function formatDate(iso: string) {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('T')[0].split('-').map(Number)
-  return `${d} ${MONTHS[m - 1]} ${y}`
+  return formatDateTime(iso)
 }
 
 export function formatSigned(n: number) {
@@ -21,7 +16,5 @@ export function formatSigned(n: number) {
 }
 
 export function nowIso() {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`
+  return new Date().toISOString()
 }

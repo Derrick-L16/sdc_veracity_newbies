@@ -7,7 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -33,10 +32,7 @@ export function RoleSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72 rounded-[12px] border border-line p-1">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="px-3 py-2 text-caption font-medium tracking-[0.04em] text-fg-secondary uppercase">
-            Demo · Currently viewing as {ROLE_INFO[role].label}
-          </DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => { void leave() }} className="min-h-11 px-3 py-2" data-testid="button-change-role">
+          <DropdownMenuItem onClick={() => { void leave() }} className="min-h-11 cursor-pointer px-3 py-2 text-fg transition-colors hover:bg-accent-fill/20 hover:text-fg focus:bg-accent-fill/20 focus:text-fg data-highlighted:bg-accent-fill/20 data-highlighted:text-fg" data-testid="button-change-role">
             Change role
           </DropdownMenuItem>
         </DropdownMenuGroup>

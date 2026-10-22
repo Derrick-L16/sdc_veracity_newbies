@@ -1,5 +1,5 @@
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const KL_OFFSET_MS = 8 * 60 * 60 * 1000 // Asia/Kuala_Lumpur is UTC+8 with no DST
+const pad = (n: number) => String(n).padStart(2, '0')
 
 function instant(iso: string): number | null {
   // The backend emits timezone-aware ISO timestamps. Never guess a timezone
@@ -10,11 +10,11 @@ function instant(iso: string): number | null {
 }
 
 /** Returns KL wall-clock parts from the backend's timezone-aware timestamps. */
-export function klParts(iso: string): { y: number; m: number; d: number; hh: number; mm: number } | null {
+export function klParts(iso: string): { y: number; m: number; d: number; hh: number; mm: number; ss: number } | null {
   const t = instant(iso)
   if (t === null) return null
   const k = new Date(t + KL_OFFSET_MS)
-  return { y: k.getUTCFullYear(), m: k.getUTCMonth() + 1, d: k.getUTCDate(), hh: k.getUTCHours(), mm: k.getUTCMinutes() }
+  return { y: k.getUTCFullYear(), m: k.getUTCMonth() + 1, d: k.getUTCDate(), hh: k.getUTCHours(), mm: k.getUTCMinutes(), ss: k.getUTCSeconds() }
 }
 
 export function klDateKey(iso: string): string | null {
@@ -30,7 +30,14 @@ export function klSortValue(iso: string): number {
 export function formatKl(iso: string): string {
   const p = klParts(iso)
   if (!p) return 'Unknown time'
-  return `${p.d} ${MONTHS[p.m - 1]} ${p.y}, ${String(p.hh).padStart(2, '0')}:${String(p.mm).padStart(2, '0')} MYT`
+  return `${pad(p.d)}/${pad(p.m)}/${p.y} ${pad(p.hh)}:${pad(p.mm)}:${pad(p.ss)}`
+}
+
+/** Calendar dates are not instants: never apply an offset to a weekly date key. */
+export function formatCalendarDate(key: string): string {
+  if (!isValidDateKey(key)) return ''
+  const [y, m, d] = key.split('-')
+  return `${d}/${m}/${y}`
 }
 
 export function isValidDateKey(v: string) {
