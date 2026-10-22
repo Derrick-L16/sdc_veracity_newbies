@@ -14,3 +14,12 @@ super-admin or a second approval requirement.
 **How to apply:** Preserve the distinction between broad read visibility and
 operational write authority. Do not infer that Owner should inherit Staff/Manager
 mutation privileges merely because Owner is the highest business role.
+
+Role selection is deliberately a demo entry experience, not real authentication.
+Email, passwords and account registration are outside the current MVP.
+
+**Why:** The user explicitly chose a simple role dropdown before entry and
+Change role inside the app, rather than a production login system.
+
+**How to apply:** Keep the demo limitation visible. Do not expand this flow into
+Clerk, Replit Auth, registration or real account provisioning without a new request.

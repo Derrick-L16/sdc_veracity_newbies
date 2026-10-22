@@ -1,8 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+import { changeDemoRole, loginDemo } from './demo-helpers';
 
 async function switchRole(page: Page, from: string, to: string, home: string) {
-  await page.getByRole("button", { name: new RegExp(`Role: ${from}`) }).click();
-  await page.getByRole("menuitemradio", { name: new RegExp(to) }).click();
+  await expect(page.getByRole("button", { name: new RegExp(`Role: ${from}`) })).toBeVisible();
+  await changeDemoRole(page, to.toLowerCase() as 'staff' | 'manager' | 'owner');
   await expect(page).toHaveURL(new RegExp(`${home}$`));
   await expect(page.getByRole("menu")).toHaveCount(0);
 }
@@ -10,7 +11,7 @@ async function switchRole(page: Page, from: string, to: string, home: string) {
 test("role homes, owner oversight and preserved deep links use real records", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await loginDemo(page, 'manager');
   await expect(page).toHaveURL(/\/inbox$/);
   await switchRole(page, "Manager", "Owner", "/reports");
   await page.goto("/");

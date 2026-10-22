@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { FileText, Image, Paperclip, Upload, X } from 'lucide-react'
-import { useApp } from '@/components/app/app-provider'
+import { useApp, useUnsavedWork } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from './primitives'
 import { formatDateTime } from '@/lib/format'
@@ -15,6 +15,7 @@ export function CaseAttachments({ stockCase, viewed, historical = false, readOnl
   const [file, setFile] = useState<File | null>(null)
   const [description, setDescription] = useState('')
   const [busy, setBusy] = useState(false)
+  useUnsavedWork(Boolean(file || description || busy))
   const [error, setError] = useState('')
   const [phase, setPhase] = useState('')
   const [progress, setProgress] = useState(0)

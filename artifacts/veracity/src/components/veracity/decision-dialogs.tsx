@@ -1,6 +1,7 @@
 
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import { useId, useState } from 'react'
+import { useUnsavedWork } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -78,6 +79,7 @@ export function ReasonDialog({
   const [reason, setReason] = useState('')
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
+  useUnsavedWork(open && Boolean(reason || busy))
   const fieldId = useId()
   const errorId = useId()
   const hintId = useId()

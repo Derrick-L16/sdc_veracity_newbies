@@ -15,8 +15,9 @@ import { PassportView } from '@/components/screens/passport-view'
 import { WeeklyReportView } from '@/components/screens/weekly-report-view'
 import { OwnerDecisionsView } from '@/components/screens/owner-decisions-view'
 import { StaffWorkView } from '@/components/screens/staff-work-view'
+import { DemoLoginView } from '@/components/screens/demo-login-view'
 import { ErrorNotice } from '@/components/veracity/primitives'
-import { roleHome } from '@/lib/role-home'
+import { demoDestination, roleHome } from '@/lib/role-home'
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -78,14 +79,29 @@ function Router() {
   )
 }
 
+function DemoAccess() {
+  const { authenticated, loading, error, refresh, role } = useApp()
+  const [location] = useLocation()
+  const search = useSearch()
+  if (location === '/login') {
+    if (authenticated && !loading) return <Redirect to={demoDestination(role, new URLSearchParams(search).get('next'))} replace />
+    return <Titled title="Demo login · Veracity"><DemoLoginView /></Titled>
+  }
+  if (loading) return <main className="flex min-h-dvh items-center justify-center bg-base"><p role="status">Loading your demo session…</p></main>
+  if (!authenticated) {
+    if (error) return <main className="mx-auto flex min-h-dvh max-w-lg items-center p-6"><ErrorNotice title="Could not check your demo session" description={error} onRetry={() => { void refresh().catch(() => {}) }} /></main>
+    const next = location === '/' ? '' : `?next=${encodeURIComponent(location + (search ? `?${search}` : ''))}`
+    return <Redirect to={`/login${next}`} replace />
+  }
+  return <AppShell><Router /></AppShell>
+}
+
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <AppProvider>
-          <AppShell>
-            <Router />
-          </AppShell>
+          <DemoAccess />
           <Toaster position="top-center" />
         </AppProvider>
       </WouterRouter>

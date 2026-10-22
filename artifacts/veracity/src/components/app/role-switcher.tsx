@@ -1,26 +1,32 @@
 
 import { ChevronDown, UserCircle2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ROLE_INFO } from '@/lib/data'
-import type { Role } from '@/lib/types'
 import { useApp } from './app-provider'
 
 export function RoleSwitcher() {
-  const { role, setRole, user } = useApp()
+  const { role, changeRole, user } = useApp()
   const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const leave = async () => {
+    setOpen(false); setBusy(true)
+    try { await changeRole() }
+    catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
+  }
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger render={<Button variant="secondary" aria-label={`Role: ${ROLE_INFO[role].label}. Change role`} />}>
+      <DropdownMenuTrigger render={<Button variant="secondary" disabled={busy} aria-label={`Role: ${ROLE_INFO[role].label}. Change role`} />}>
         <UserCircle2 aria-hidden="true" />
         <span className="hidden sm:inline">{user.name}</span>
         <span className="text-fg-secondary">{ROLE_INFO[role].label}</span>
@@ -29,18 +35,11 @@ export function RoleSwitcher() {
       <DropdownMenuContent align="end" className="w-72 rounded-[12px] border border-line p-1">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="px-3 py-2 text-caption font-medium tracking-[0.04em] text-fg-secondary uppercase">
-            Preview as role
+            Demo · Currently viewing as {ROLE_INFO[role].label}
           </DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={role} onValueChange={(v) => { setOpen(false); setRole(v as Role) }}>
-            {(Object.keys(ROLE_INFO) as Role[]).map((r) => (
-              <DropdownMenuRadioItem key={r} value={r} className="min-h-11 items-start px-3 py-2">
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-body-sm font-medium">{ROLE_INFO[r].label}</span>
-                  <span className="text-caption text-fg-secondary">{ROLE_INFO[r].description}</span>
-                </span>
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
+          <DropdownMenuItem onClick={() => { void leave() }} className="min-h-11 px-3 py-2" data-testid="button-change-role">
+            Change role
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
+import { changeDemoRole, loginDemo } from './demo-helpers';
 
 test("import, staff count, manager approval and persistent Decision Passport", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const id = `migration-${Date.now()}`;
   const name = `Migration test ${id}`;
-  const ready = page.waitForResponse((r) => r.url().endsWith("/api/backend/state") && r.status() === 200);
+  await loginDemo(page, 'manager');
   await page.goto("/account");
-  await ready;
   await expect(page.getByRole("heading", { name: "Connected records" })).toBeVisible();
   await page.getByLabel("CSV records").setInputFiles({
     name: "products.csv", mimeType: "text/csv",
@@ -25,8 +25,7 @@ test("import, staff count, manager approval and persistent Decision Passport", a
   const imported = page.waitForResponse((r) => r.url().endsWith("/api/backend/imports") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Import records", exact: true }).click();
   expect((await imported).status()).toBe(200);
-  await page.getByRole("button", { name: /Role: Manager/ }).click();
-  await page.getByRole("menuitemradio", { name: /Staff/ }).click();
+  await changeDemoRole(page, 'staff');
   await expect(page.getByRole("button", { name: /Role: Staff/ })).toBeVisible();
   await expect(page).toHaveURL(/\/work$/);
   await page.goto("/count");
@@ -37,8 +36,7 @@ test("import, staff count, manager approval and persistent Decision Passport", a
   const caseId = page.url().split("/cases/")[1];
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
   await page.screenshot({ path: "generated-artifacts/count-case.jpg", fullPage: true });
-  await page.getByRole("button", { name: /Role: Staff/ }).click();
-  await page.getByRole("menuitemradio", { name: /Manager/ }).click();
+  await changeDemoRole(page, 'manager');
   await expect(page.getByRole("button", { name: /Role: Manager/ })).toBeVisible();
   await expect(page).toHaveURL(/\/inbox$/);
   await page.goto(`/cases/${caseId}`);
@@ -58,8 +56,7 @@ test("import, staff count, manager approval and persistent Decision Passport", a
   await page.screenshot({ path: "generated-artifacts/decision-passport.jpg", fullPage: true });
   await page.goto("/history");
   await expect(page.getByRole("heading", { name: "History", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Role: Manager/ }).click();
-  await page.getByRole("menuitemradio", { name: /Owner/ }).click();
+  await changeDemoRole(page, 'owner');
   await expect(page.getByRole("button", { name: /Role: Owner/ })).toBeVisible();
   await expect(page).toHaveURL(/\/reports$/);
   await page.goto("/count");

@@ -4,7 +4,7 @@ import { Link } from 'wouter'
 import { useLocation } from 'wouter'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
-import { useApp } from '@/components/app/app-provider'
+import { useApp, useUnsavedWork } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +22,7 @@ export function CountView() {
   const [note, setNote] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
+  useUnsavedWork(Boolean(productId || counted || diffInput || note || busy))
   const ids = {
     product: useId(),
     counted: useId(),

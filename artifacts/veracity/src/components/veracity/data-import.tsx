@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useApp } from '@/components/app/app-provider'
+import { useApp, useUnsavedWork } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from './primitives'
 
@@ -26,6 +26,7 @@ export function DataImport() {
   const [kind, setKind] = useState('products')
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
+  useUnsavedWork(Boolean(file || busy))
   if (role !== 'manager') return null
   const upload = async () => {
     if (!file) return
@@ -39,7 +40,7 @@ export function DataImport() {
       const response = await fetch('/api/backend/imports', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ kind, rows }) })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error)
-      await refresh(); toast.success(`Imported ${result.imported} records.`)
+      await refresh(); setFile(null); toast.success(`Imported ${result.imported} records.`)
     } catch (e) { toast.error((e as Error).message) }
     finally { setBusy(false) }
   }
