@@ -43,7 +43,7 @@ export function WeeklyReportView() {
   if (appLoading) return <ReportSkeleton />
   if (productId) {
     return selectedProduct
-      ? <ProductSummaryDetail item={selectedProduct} />
+      ? <ProductSummaryDetail item={selectedProduct} canViewSummary={allowed} />
       : <ErrorNotice title="Product not found" description="Refresh the stock summary and try again." />
   }
   if (!allowed) {
@@ -134,7 +134,7 @@ function ReportSkeleton() {
 
 const signed = (n: number) => n > 0 ? `+${n}` : `${n}`
 
-function ProductSummaryDetail({ item }: { item: ReturnType<typeof useApp>['summary']['items'][number] }) {
+function ProductSummaryDetail({ item, canViewSummary }: { item: ReturnType<typeof useApp>['summary']['items'][number]; canViewSummary: boolean }) {
   const status = item.status === 'not_counted'
     ? <Pill tone="neutral" icon={AlertTriangle}>Not counted</Pill>
     : item.difference === 0
@@ -145,7 +145,14 @@ function ProductSummaryDetail({ item }: { item: ReturnType<typeof useApp>['summa
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title="Product summary" subtitle="Current counted quantity compared with the recorded stock.">
-        <Link href="/count" className={buttonVariants({ variant: 'secondary' })}><ArrowLeft aria-hidden="true" />Back to count</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/count" className={buttonVariants({ variant: 'secondary' })}><ArrowLeft aria-hidden="true" />Back to count</Link>
+          {canViewSummary && (
+            <Link href="/reports" data-testid="button-back-to-summary" className={buttonVariants({ variant: 'secondary' })}>
+              Back to summary<ArrowRight aria-hidden="true" />
+            </Link>
+          )}
+        </div>
       </PageHeader>
       <Card className="flex flex-col gap-4" data-testid={`card-product-summary-${item.productId}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
