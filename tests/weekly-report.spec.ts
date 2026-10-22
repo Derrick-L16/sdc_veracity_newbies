@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./isolated-test";
 import type { WeeklyInventoryReport } from "@workspace/api-client-react";
 import { changeDemoRole, loginDemo } from './demo-helpers';
 

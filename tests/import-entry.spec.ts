@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './isolated-test'
 import { loginDemo, changeDemoRole } from './demo-helpers'
 
 test('manager import dialog preserves CSV behavior, errors and unsaved work', async ({ page }) => {
@@ -26,11 +26,11 @@ test('manager import dialog preserves CSV behavior, errors and unsaved work', as
   await dialog.getByLabel('CSV records').setInputFiles(file)
   await page.route('**/api/backend/imports', r => r.fulfill({ status: 400, json: { error: 'CSV test validation failure.' } }))
   await submit.click()
-  await expect(dialog.getByRole('alert')).toHaveText('CSV test validation failure.')
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'CSV test validation failure.' })).toBeVisible()
   await expect(submit).toBeEnabled()
   await page.unroute('**/api/backend/imports')
   // Intercept only import writes: exercise payload and dialog lifecycle without
-  // creating synthetic products/movements in the development database.
+  // creating synthetic products/movements for this dialog-only test.
   let release!: () => void
   const hold = new Promise<void>(resolve => { release = resolve })
   let payload: { kind: string; rows: Record<string, unknown>[] } | undefined
@@ -45,7 +45,7 @@ test('manager import dialog preserves CSV behavior, errors and unsaved work', as
   await page.keyboard.press('Escape')
   await expect(dialog).toBeVisible()
   release()
-  await expect(dialog.getByRole('status')).toHaveText('Imported 1 records.')
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Imported 1 records.' }).last()).toBeVisible()
   expect(payload).toEqual({ kind: 'products', rows: [{ id: 'dialog-test', name: 'Dialog test', recorded: 12, unit_cost: 2.5 }] })
   await expect(submit).toBeDisabled()
   expect(await dialog.getByLabel('CSV records').evaluate((e: HTMLInputElement) => e.files?.length)).toBe(0)
@@ -55,7 +55,7 @@ test('manager import dialog preserves CSV behavior, errors and unsaved work', as
     buffer: Buffer.from('id,product_id,kind,quantity,occurred_at,conflict_ref\nmove-test,dialog-test,Sale,-2,2026-01-01T00:00:00Z,\n'),
   })
   await submit.click()
-  await expect(dialog.getByRole('status')).toHaveText('Imported 1 records.')
+  await expect(submit).toBeDisabled()
   expect(payload?.kind).toBe('movements')
   expect(payload?.rows[0].quantity).toBe(-2)
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()

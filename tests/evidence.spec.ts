@@ -1,13 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./isolated-test";
 import { createRequire } from "node:module";
 import path from "node:path";
 
 const requireServer = createRequire(path.resolve("artifacts/api-server/package.json"));
 const { PDFDocument } = requireServer("pdf-lib");
 const sharp = requireServer("sharp");
-const origin = { Origin: process.env.PLAYWRIGHT_BASE_URL || "http://localhost" };
 
-test("private evidence upload, retry, stale review, historical snapshots and Passport", async ({ page, context, playwright }) => {
+test("private evidence upload, retry, stale review, historical snapshots and Passport", async ({ page, context, playwright, baseURL }) => {
+  const origin = { Origin: baseURL! };
   test.setTimeout(180000);
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
@@ -26,7 +26,7 @@ test("private evidence upload, retry, stale review, historical snapshots and Pas
   const base = `/api/evidence/cases/${c.id}`;
   const metadata = { filename: "receipt.pdf", contentType: "application/pdf", size: 200, description: "", version: 1, requestKey: crypto.randomUUID() };
   expect((await post(`/api/evidence/cases/${other.id}/uploads`, metadata)).status()).toBe(404);
-  const anonymous = await playwright.request.newContext({ baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:80" });
+  const anonymous = await playwright.request.newContext({ baseURL });
   expect((await anonymous.post(`${base}/uploads`, { data: metadata, headers: origin })).status()).toBe(401);
   await anonymous.dispose();
   expect((await post("/api/backend/evidence/anything/uploads", metadata)).status()).toBe(404);

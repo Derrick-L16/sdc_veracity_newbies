@@ -119,16 +119,23 @@ pnpm run typecheck
 node --test artifacts/veracity/tests/evidence-upload.test.mjs
 ```
 
-The existing `pnpm test:e2e` command targets the running Replit preview proxy by
-default. To run it against your running local app from Git Bash:
+`pnpm test:e2e` starts its own loopback-only frontend/API gateway, Python backend,
+temporary SQLite database and local evidence storage. No running demo/local app
+or cloud storage credentials are needed:
 
 ```bash
 pnpm exec playwright install chromium
-PLAYWRIGHT_BASE_URL=http://localhost:3000 pnpm test:e2e
+pnpm test:e2e
 ```
 
-Browser tests add uniquely named synthetic records and can approve their own test
-cases; use a test environment. They are not the local launcher.
+The temporary instance is removed after the run (including failures). Browser tests
+refuse `PLAYWRIGHT_BASE_URL` and verify the run identity before any test executes.
+Do not bypass this safety fixture or run write tests against a walkthrough instance.
+The runner compares a read-only logical snapshot of the demo SQLite database before
+and after testing, including inventory, cases, reporting sources and evidence metadata.
+Keep demo business data idle during this check; it never restores, resets or cleans
+user data. `VERACITY_DB`, if set, identifies the demo database to check, not the test
+database. Test SQLite/evidence paths are always created afresh by the runner.
 See `replit.md` for Replit workflow details and known
 prototype limitations. Windows startup has cross-platform launchers, but actual
 Windows execution must still be verified by a teammate; Linux results do not

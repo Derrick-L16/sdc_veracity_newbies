@@ -16,3 +16,9 @@ appear in inventory, case lists and reports. Do not automatically seed the user'
 database when they are intending to learn the import flow. Obtain approval before
 destructive cleanup, and back up SQLite with its backup API rather than copying
 only the main database file while WAL is active.
+
+Isolate evidence file bytes as well as database rows when running mutating tests.
+**Why:** Throwing away SQLite metadata alone can leave private fixture files in
+shared cloud storage; database isolation is not sufficient protection.
+**How to apply:** Use disposable local evidence storage alongside the temporary
+database for browser tests, rather than inheriting walkthrough storage settings.

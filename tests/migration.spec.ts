@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./isolated-test";
 import { changeDemoRole, loginDemo } from './demo-helpers';
 
 test("import, staff count, manager approval and persistent Decision Passport", async ({ page }) => {
