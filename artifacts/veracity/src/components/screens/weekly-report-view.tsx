@@ -316,7 +316,7 @@ function DecisionChart({ report }: { report: WeeklyInventoryReport }) {
                   onMouseEnter={(_: unknown, i: number) => setActive(parts.filter((p) => p.value > 0)[i]?.key ?? null)} onMouseLeave={() => setActive(null)}>
                   {parts.filter((p) => p.value > 0).map((p) => <Cell key={p.key} fill={p.color} opacity={active && active !== p.key ? 0.45 : 1} />)}
                 </Pie>
-                <Tooltip contentStyle={tooltipStyle} formatter={function (v: number, n: string) { return [`${v} (${Math.round((v / total) * 100)}%)`, n] }} />
+                <Tooltip content={<DecisionTooltip total={total} />} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -329,15 +329,36 @@ function DecisionChart({ report }: { report: WeeklyInventoryReport }) {
           {parts.map((p) => (
             <li key={p.key} className="flex items-center gap-2 text-body-sm" onMouseEnter={() => setActive(p.key)} onMouseLeave={() => setActive(null)}>
               <span className="size-2.5 rounded-sm" style={{ background: p.color }} aria-hidden="true" />
-              <span className="flex-1 text-fg-secondary">{p.name}</span>
-              <span className="num font-semibold" data-testid={`text-decisions-${p.key}`}>{p.value}</span>
-              <span className="num w-10 text-right text-caption text-fg-tertiary">{total ? `${Math.round((p.value / total) * 100)}%` : '–'}</span>
+              <span className="flex-1 text-fg-secondary" style={active === p.key ? { color: p.color } : undefined}>{p.name}</span>
+              <span className="num font-semibold" data-testid={`text-decisions-${p.key}`} style={active === p.key ? { color: p.color } : undefined}>{p.value}</span>
+              <span className="num w-10 text-right text-caption text-fg-tertiary" style={active === p.key ? { color: p.color } : undefined}>{total ? `${Math.round((p.value / total) * 100)}%` : '–'}</span>
             </li>
           ))}
         </ul>
       </div>
       <p className="text-caption text-fg-tertiary">Overridden: manager chose a different outcome than suggested.</p>
     </Card>
+  )
+}
+
+function DecisionTooltip({
+  active,
+  payload,
+  total,
+}: {
+  active?: boolean
+  payload?: Array<{ payload?: { name?: string; value?: number; color?: string } }>
+  total: number
+}) {
+  const item = payload?.[0]?.payload
+  if (!active || !item?.name || typeof item.value !== 'number') return null
+
+  const color = item.color ?? 'var(--text-primary)'
+  return (
+    <div className="rounded-[12px] border bg-elevated px-3 py-2 text-center shadow-lg" style={{ borderColor: color, color }}>
+      <p className="text-caption font-medium">{item.name}</p>
+      <p className="num text-body-sm font-semibold">{item.value} ({Math.round((item.value / total) * 100)}%)</p>
+    </div>
   )
 }
 
