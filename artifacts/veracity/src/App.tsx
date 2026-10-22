@@ -5,7 +5,6 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { AppProvider, useApp } from '@/components/app/app-provider'
 import { AppShell } from '@/components/app/app-shell'
 import { Toaster } from '@/components/ui/sonner'
-import { AccountView } from '@/components/screens/account-view'
 import { CaseDetailView } from '@/components/screens/case-detail-view'
 import { CountView } from '@/components/screens/count-view'
 import { HistoryView } from '@/components/screens/history-view'
@@ -15,6 +14,7 @@ import { PassportView } from '@/components/screens/passport-view'
 import { WeeklyReportView } from '@/components/screens/weekly-report-view'
 import { OwnerDecisionsView } from '@/components/screens/owner-decisions-view'
 import { StaffWorkView } from '@/components/screens/staff-work-view'
+import { DemoLoginView } from '@/components/screens/demo-login-view'
 import { ErrorNotice } from '@/components/veracity/primitives'
 import { roleHome } from '@/lib/role-home'
 
@@ -54,13 +54,13 @@ function Router() {
   return (
     <ErrorBoundary resetKey={location}>
       <Switch>
-        <Route path="/"><RoleLanding /></Route>
+        <Route path="/"><Redirect to="/login" replace /></Route>
         <Route path="/work"><Titled title="My work · Veracity"><StaffWorkView /></Titled></Route>
         <Route path="/decisions"><Titled title="Decision overview · Veracity"><OwnerDecisionsView /></Titled></Route>
         <Route path="/inbox"><Titled title="Inbox · Veracity"><InboxView /></Titled></Route>
         <Route path="/inbox/frames"><Titled title="Inbox frames · Veracity"><InboxFramesView /></Titled></Route>
         <Route path="/count"><Titled title="New count · Veracity"><CountView /></Titled></Route>
-        <Route path="/account"><Titled title="Account · Veracity"><AccountView /></Titled></Route>
+        <Route path="/account"><RoleLanding /></Route>
         <Route path="/cases/:id" component={CasePage} />
         <Route path="/history"><Titled title="History · Veracity"><HistoryView /></Titled></Route>
         <Route path="/reports"><Titled title="Weekly summary · Veracity"><WeeklyReportView /></Titled></Route>
@@ -78,14 +78,29 @@ function Router() {
   )
 }
 
+function DemoAccess() {
+  const { authenticated, loading, error, refresh } = useApp()
+  const [location] = useLocation()
+  const search = useSearch()
+  if (location === '/') return <Redirect to="/login" replace />
+  if (location === '/login') {
+    return <Titled title="Login · Veracity"><DemoLoginView /></Titled>
+  }
+  if (loading) return <main className="flex min-h-dvh items-center justify-center bg-base"><p role="status">Loading your demo session…</p></main>
+  if (!authenticated) {
+    if (error) return <main className="mx-auto flex min-h-dvh max-w-lg items-center p-6"><ErrorNotice title="Could not check your demo session" description={error} onRetry={() => { void refresh().catch(() => {}) }} /></main>
+    const next = location === '/' ? '' : `?next=${encodeURIComponent(location + (search ? `?${search}` : ''))}`
+    return <Redirect to={`/login${next}`} replace />
+  }
+  return <AppShell><Router /></AppShell>
+}
+
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <AppProvider>
-          <AppShell>
-            <Router />
-          </AppShell>
+          <DemoAccess />
           <Toaster position="top-center" />
         </AppProvider>
       </WouterRouter>

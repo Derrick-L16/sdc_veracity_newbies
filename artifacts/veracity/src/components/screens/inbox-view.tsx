@@ -1,9 +1,11 @@
 
-import { ClipboardList, Inbox, X } from 'lucide-react'
+import { ClipboardList, Inbox, Upload, X } from 'lucide-react'
 import { Link } from 'wouter'
 import { useRef, useState } from 'react'
 import { useApp } from '@/components/app/app-provider'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { DataImport } from '@/components/veracity/data-import'
 import { STATUS_LABEL } from '@/components/veracity/badges'
 import { CaseRow } from '@/components/veracity/case-row'
 import { EmptyState, PageHeader } from '@/components/veracity/primitives'
@@ -27,6 +29,12 @@ export function InboxView() {
   const { inboxCases, role, summary, progress, loading, error } = useApp()
   const [filter, setFilter] = useState<CaseStatus | 'all'>('all')
   const [segment, setSegment] = useState<SegmentKey | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importState, setImportState] = useState({ dirty: false, busy: false })
+  const closeImport = (open: boolean) => {
+    if (!open && (importState.busy || (importState.dirty && !window.confirm('Discard the selected CSV and close import?')))) return
+    setImportOpen(open)
+  }
   const overviewRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const collapsed = useOutOfView(overviewRef)
@@ -54,11 +62,30 @@ export function InboxView() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Inbox" subtitle={subtitle}>
-        <Link href="/count" className={cn(buttonVariants({ size: 'lg' }), 'self-start md:self-auto')}>
-          <ClipboardList aria-hidden="true" />
-          New count
-        </Link>
+        <div className="flex flex-wrap gap-2 self-start md:self-auto">
+          {role === 'manager' && (
+            <Button variant="secondary" size="lg" onClick={() => setImportOpen(true)} data-testid="button-open-import">
+              <Upload aria-hidden="true" />Import records
+            </Button>
+          )}
+          {role !== 'owner' && (
+            <Link href="/count" className={buttonVariants({ size: 'lg' })}>
+              <ClipboardList aria-hidden="true" />New count
+            </Link>
+          )}
+        </div>
       </PageHeader>
+      {role === 'manager' && (
+        <Dialog open={importOpen} onOpenChange={closeImport}>
+          <DialogContent className="max-h-[85dvh] overflow-y-auto rounded-[20px] border border-line bg-surface p-5 sm:max-w-xl" showCloseButton={!importState.busy}>
+            <DialogHeader>
+              <DialogTitle>Import records</DialogTitle>
+              <DialogDescription>Add inventory products or unposted stock movements from a CSV file.</DialogDescription>
+            </DialogHeader>
+            {importOpen && <DataImport onStateChange={setImportState} />}
+          </DialogContent>
+        </Dialog>
+      )}
 
       <div ref={overviewRef}>
         {role === 'staff' ? (

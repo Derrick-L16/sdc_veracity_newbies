@@ -1,5 +1,5 @@
 
-import { BarChart3, ClipboardList, History, Inbox, ShieldCheck, User, ListChecks, BookOpenCheck } from 'lucide-react'
+import { BarChart3, ClipboardList, History, Inbox, ShieldCheck, ListChecks, BookOpenCheck } from 'lucide-react'
 import { Link } from 'wouter'
 import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
@@ -15,7 +15,6 @@ const NAV: { href: string; label: string; icon: typeof Inbox; roles?: Role[] }[]
   { href: '/history', label: 'History', icon: History },
   { href: '/decisions', label: 'Decisions', icon: BookOpenCheck, roles: ['owner'] },
   { href: '/reports', label: 'Summary', icon: BarChart3, roles: ['manager', 'owner'] },
-  { href: '/account', label: 'Account', icon: User },
 ]
 
 function Brand() {

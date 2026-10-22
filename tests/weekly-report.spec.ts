@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
 import type { WeeklyInventoryReport } from "@workspace/api-client-react";
+import { changeDemoRole, loginDemo } from './demo-helpers';
 
 test("weekly dashboard uses real reports, persists week selection and enforces roles", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  await loginDemo(page, 'manager');
   const reportResponse = page.waitForResponse((r) =>
     r.url().includes("/api/backend/reports/weekly") && r.status() === 200);
   await page.goto("/reports");
@@ -48,9 +50,7 @@ test("weekly dashboard uses real reports, persists week selection and enforces r
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "generated-artifacts/weekly-summary-mobile.jpg", fullPage: true });
 
-  await page.getByRole("button", { name: /Role: Manager/ }).click();
-  await page.getByRole("menuitemradio", { name: /Staff/ }).click();
-  await page.keyboard.press("Escape");
+  await changeDemoRole(page, 'staff');
   await expect(page).toHaveURL(/\/work$/);
   await page.goto("/reports");
   await expect(page.getByText("Managers and owners only", { exact: true })).toBeVisible();
@@ -60,9 +60,7 @@ test("weekly dashboard uses real reports, persists week selection and enforces r
   expect(denied).toBe(403);
   await page.reload();
   await expect(page.getByText("Managers and owners only", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Role: Staff/ }).click();
-  await page.getByRole("menuitemradio", { name: /Owner/ }).click();
-  await page.keyboard.press("Escape");
+  await changeDemoRole(page, 'owner');
   await expect(page).toHaveURL(/\/reports$/);
   await expect(page.getByTestId("stat-countSubmissions")).toHaveText(String(current.totals.countSubmissions));
 
