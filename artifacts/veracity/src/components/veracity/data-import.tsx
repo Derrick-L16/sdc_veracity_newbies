@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { useApp, useUnsavedWork } from '@/components/app/app-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from './primitives'
+import { readJson } from '@/lib/read-json'
 
 // RFC 4180-style quoted fields, commas, CRLF and multiline cells.
 function parseCSV(source: string): Record<string, string>[] {
@@ -58,7 +59,7 @@ export function DataImport({ onStateChange }: { onStateChange?: (state: { dirty:
         return Object.fromEntries(Object.entries(row).map(([k,v]) => [k,fields.includes(k) ? (v === '' ? null : Number(v)) : v]))
       })
       const response = await fetch('/api/backend/imports', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ kind, rows }) })
-      const result = await response.json()
+      const result = await readJson<{ imported?: number; error?: string }>(response)
       if (!response.ok) throw new Error(result.error)
       await refresh()
       const message = `Imported ${result.imported} records.`

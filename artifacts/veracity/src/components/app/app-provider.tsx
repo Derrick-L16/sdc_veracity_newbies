@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'wouter'
 import { demoDestination } from '@/lib/role-home'
+import { readJson } from '@/lib/read-json'
 import { OPEN_STATUSES, USERS } from '@/lib/data'
 import type { Decision, DecisionGuard, Product, Role, StockCase, User } from '@/lib/types'
 import type { StockSummary, StaffProgress } from '@/lib/stock'
@@ -27,7 +28,7 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null)
 async function api<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`/api/backend/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store' })
-  const data = await response.json()
+  const data = await readJson<T & { error?: string }>(response)
   if (!response.ok) throw Object.assign(new Error(data.error || 'Request failed.'), { status: response.status })
   return data
 }
