@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { loginDemo } from "./demo-helpers";
 
 test("staff product creation is explicit about unavailable product evidence", async ({ page }) => {
   const name = `Count product ${Date.now()}`;
-  await page.goto("/count");
-  await page.getByRole("button", { name: /Role: Manager/ }).click();
-  await page.getByRole("menuitemradio", { name: /Staff/ }).click();
+  await loginDemo(page, "staff");
   await page.goto("/count");
 
   await page.getByRole("button", { name: "Add New Product", exact: true }).click();
