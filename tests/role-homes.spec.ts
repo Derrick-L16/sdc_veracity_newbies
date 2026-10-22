@@ -1,8 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+import { changeDemoRole, enterDemo, loginDemo } from './demo-helpers';
 
 async function switchRole(page: Page, from: string, to: string, home: string) {
-  await page.getByRole("button", { name: new RegExp(`Role: ${from}`) }).click();
-  await page.getByRole("menuitemradio", { name: new RegExp(to) }).click();
+  await expect(page.getByRole("button", { name: new RegExp(`Role: ${from}`) })).toBeVisible();
+  await changeDemoRole(page, to.toLowerCase() as 'staff' | 'manager' | 'owner');
   await expect(page).toHaveURL(new RegExp(`${home}$`));
   await expect(page.getByRole("menu")).toHaveCount(0);
 }
@@ -10,10 +11,12 @@ async function switchRole(page: Page, from: string, to: string, home: string) {
 test("role homes, owner oversight and preserved deep links use real records", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await loginDemo(page, 'manager');
   await expect(page).toHaveURL(/\/inbox$/);
   await switchRole(page, "Manager", "Owner", "/reports");
   await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await enterDemo(page, 'owner');
   await expect(page).toHaveURL(/\/reports$/);
   await page.getByRole("link", { name: "Decisions", exact: true }).filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: "Decisions", exact: true })).toBeVisible();
@@ -43,6 +46,8 @@ test("role homes, owner oversight and preserved deep links use real records", as
   await page.reload();
   await expect(page).toHaveURL(/\/work$/);
   await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await enterDemo(page, 'staff');
   await expect(page).toHaveURL(/\/work$/);
   await page.getByTestId("link-start-count").click();
   await expect(page).toHaveURL(/\/count$/);
@@ -53,6 +58,8 @@ test("role homes, owner oversight and preserved deep links use real records", as
 
   await switchRole(page, "Staff", "Manager", "/inbox");
   await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await enterDemo(page, 'manager');
   await expect(page).toHaveURL(/\/inbox$/);
   await page.goto("/decisions");
   await expect(page.getByRole("link", { name: "Open History", exact: true })).toBeVisible();

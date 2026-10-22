@@ -17,3 +17,29 @@ page's right-hand panel.
 operational write authority. Do not infer that Owner should inherit Staff/Manager
 mutation privileges merely because Owner is the highest business role. Keep
 Staff's Count-panel visibility separate from Summary-page access.
+
+Role selection is deliberately a demo entry experience, not real authentication.
+Email, passwords and account registration are outside the current MVP.
+
+**Why:** The user explicitly chose a simple role dropdown before entry and
+Change role inside the app, rather than a production login system.
+
+**How to apply:** Describe the demo limitation when discussing security or deployment. Do not expand this flow into
+Clerk, Replit Auth, registration or real account provisioning without a new request.
+
+The entry should feel like a simple login, not a role-permissions tutorial.
+
+**Why:** The user explicitly wanted just a role dropdown and Log in, and asked
+to remove role-responsibility explanations and the Account tab.
+
+**How to apply:** Keep entry concise and move operational tools to the relevant
+role's working page rather than rebuilding an Account/settings area.
+
+Returning to the website entry should present Login rather than silently reuse
+the previous role to enter the workspace.
+
+**Why:** The user explicitly said the first page must be Login, not a page inside
+the main app, and removed the demo-disclaimer wording from that page.
+
+**How to apply:** Do not restore automatic entry just because a session exists.
+This is a demo walkthrough preference, not a request for real authentication.

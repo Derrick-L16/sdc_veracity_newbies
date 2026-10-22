@@ -16,10 +16,29 @@ Do not run a root `pnpm dev`. Managed workflows provide `PORT` and `BASE_PATH`.
 - `artifacts/veracity/src/` — preserved imported screens, components, styles and state provider; wouter replaces Next routing.
 - Other routes: `/inbox`, `/inbox/frames`, `/count`, `/account`, `/cases/:id`
   (including `?v=` assessment versions), `/history`, `/history/:id`, `/reports`.
-- Home routing: `/` waits for the existing session/state, then sends Staff to
-  `/work`, Manager to `/inbox`, Owner to `/reports`. Successful role changes
-  use the same homes and clear the prior role's state. Brand links return home;
+- Entry routing: `/` always goes to `/login`, even with an existing session.
+  `/login` never automatically redirects into the workspace; users select a role
+  and click Log in. Protected deep links without a valid session also go to login,
+  outside the app shell. A required role dropdown and Log in create the
+  existing HttpOnly demo session; there is no email/password or real identity.
+  There is no automatic Manager login, including on 401 or backend failures.
+- Home routing after entry: Staff goes to `/work`, Manager to `/inbox`, Owner
+  to `/reports`. The header menu's Change role calls `POST /api/backend/session/end`,
+  revokes the session in SQLite and clears the cookie and client snapshot before
+  returning to `/login`. Account is removed from both navigation layouts; old
+  `/account` links redirect to the role's home. Failed exit keeps the
+  current role and unsaved form. Unsaved count/import/evidence/reason work warns
+  before role change (and browser unload); cancel preserves it.
+  Brand links return home;
   ordinary reloads of explicit case, Passport or report links do not redirect.
+  Expired sessions return to role selection; only known local deep links survive
+  entry, with existing server-side role visibility still enforced.
+- Login intentionally has no role-responsibility list, explanation panel or
+  footer notice. Manager Inbox exposes Import records in a
+  dialog, reusing the existing CSV import endpoint and role checks. Successful
+  import clears the chosen file and shows confirmation; failure retains it for
+  retry. While importing, closing and editing are blocked; unsaved CSV selections
+  require confirmation before closing. Staff and Owner have no import entry.
 - `/work` is the Staff-only personal work overview (existing current product
   coverage, own open cases and decided outcomes), not a task-assignment system.
 - `/decisions` is the Owner-only decision overview presentation. It uses the
@@ -90,6 +109,17 @@ No email delivery, task assignment system, new database or mock data was added.
 Development data includes earlier browser-test records; it is not business data.
 
 ## Tests
+
+- `pnpm exec playwright test tests/demo-entry.spec.ts tests/import-entry.spec.ts`
+  checks the simplified Login, removed Account navigation/legacy redirects,
+  Manager-only modal import, product/movement payloads, error recovery, unsaved
+  file close confirmation, busy-state protection and mobile sizing. Import POSTs
+  in this focused test are intercepted, so it does not add inventory test data.
+
+- `pnpm exec playwright test tests/demo-entry.spec.ts tests/role-homes.spec.ts tests/weekly-report.spec.ts`
+  covers demo entry, role landing, role change/revocation, failed entry/exit,
+  cancelled/accepted unsaved-work prompts, expiry, safe deep links and mobile.
+  These tests do not create inventory or approval data.
 
 - `pnpm exec playwright test tests/role-homes.spec.ts` — real-record role landing,
   session reloads, preserved direct links, read-only Owner navigation, Staff

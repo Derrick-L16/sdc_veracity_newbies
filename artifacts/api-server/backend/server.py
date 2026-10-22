@@ -250,13 +250,17 @@ class Handler(BaseHTTPRequestHandler):
                 reporting = self.command=='GET' and path==['reports','weekly']
                 db.execute('BEGIN IMMEDIATE' if self.command=='POST' or reporting else 'BEGIN')
                 if path==['health'] and self.command=='GET': self.respond(200,{'ok':True});return
-                if path==['session'] and self.command=='POST':
-                    role=b.get('role','manager')
-                    if role not in USERS: raise APIError('Unknown role.')
-                    if os.environ.get('VERACITY_DEMO_MODE','true').lower()!='true': raise APIError('Role switching disabled. Configure real authentication before deployment.',403)
-                    token=secrets.token_urlsafe(32);db.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));db.execute('INSERT INTO sessions VALUES(?,?,?)',(token,role,time.time()+28800));db.commit()
-                    self.respond(200,{'user':USERS[role]},f'veracity_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800');return
                 cookie=self.headers.get('Cookie','');token=next((p.strip().split('=',1)[1] for p in cookie.split(';') if p.strip().startswith('veracity_session=')),'')
+                if path==['session','end'] and self.command=='POST':
+                    db.execute('DELETE FROM sessions WHERE token=?',(token,));db.commit()
+                    self.respond(200,{'ok':True},'veracity_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return
+                if path==['session'] and self.command=='POST':
+                    role=b.get('role')
+                    if not isinstance(role,str) or role not in USERS: raise APIError('Select a valid demo role.')
+                    if os.environ.get('VERACITY_DEMO_MODE','true').lower()!='true': raise APIError('Role switching disabled. Configure real authentication before deployment.',403)
+                    db.execute('DELETE FROM sessions WHERE token=? OR expires<?',(token,time.time()))
+                    token=secrets.token_urlsafe(32);db.execute('INSERT INTO sessions VALUES(?,?,?)',(token,role,time.time()+28800));db.commit()
+                    self.respond(200,{'user':USERS[role]},f'veracity_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800');return
                 session=db.execute('SELECT role FROM sessions WHERE token=? AND expires>?',(token,time.time())).fetchone()
                 if not session: raise APIError('Session expired. Select your demo role again.',401)
                 user=USERS[session['role']]

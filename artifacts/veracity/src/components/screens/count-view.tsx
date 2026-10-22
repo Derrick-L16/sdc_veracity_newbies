@@ -2,8 +2,8 @@ import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { CheckCircle2, ChevronDown, CircleMinus, CirclePlus, FileText, Loader2, Minus, Paperclip, Plus, Send, X } from 'lucide-react'
 import { Link, useLocation } from 'wouter'
 import { toast } from 'sonner'
-import { useApp } from '@/components/app/app-provider'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { useApp, useUnsavedWork } from '@/components/app/app-provider'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -43,6 +43,12 @@ export function CountView() {
   const fileInput = useRef<HTMLInputElement>(null)
   const ids = { product: useId(), counted: useId(), note: useId(), name: useId(), recorded: useId(), cost: useId(), newNote: useId() }
   const product = products.find((item) => item.id === productId)
+  useUnsavedWork(
+    (mode === 'count' && Boolean(productId || counted || note)) ||
+    (mode === 'product' && Boolean(newName || newRecorded || newCost || newNote)) ||
+    (mode === 'evidence' && flow === 'product' && Boolean(productFile)) ||
+    busy,
+  )
   const countedNum = counted === '' ? null : Number(counted)
   const countedValid = countedNum !== null && Number.isInteger(countedNum) && countedNum >= 0
   const difference = product && countedValid ? countedNum - product.recorded : null
@@ -93,10 +99,11 @@ export function CountView() {
       window.setTimeout(() => setUpdatedProductId(''), 150)
       setFlow('count')
       if (!created) {
-        toast.success('Count matches the record. Saved.')
+        toast.success('Count saved. No difference found.')
         setNewCase(null)
         setMode('complete')
       } else {
+        toast.success('Count saved. Sent for manager review.', { description: 'Add evidence to support the difference.' })
         setNewCase(created)
         setMode('evidence')
       }

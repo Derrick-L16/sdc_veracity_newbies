@@ -22,6 +22,29 @@ class HTTPTests(unittest.TestCase):
     def call(self,path,body=None):
         request=urllib.request.Request(self.base+path,data=json.dumps(body).encode() if body is not None else None,headers={'Content-Type':'application/json'})
         with self.opener.open(request,timeout=5) as response:return json.load(response)
+    def test_demo_entry_requires_an_explicit_valid_role(self):
+        for body in ({}, {'role':'admin'}, {'role':None}, {'role':[]}):
+            with self.assertRaises(urllib.error.HTTPError) as err:self.call('session',body)
+            self.assertEqual(err.exception.code,400)
+        with self.assertRaises(urllib.error.HTTPError) as err:self.call('state')
+        self.assertEqual(err.exception.code,401)
+    def test_change_role_ends_and_revokes_session(self):
+        self.call('session',{'role':'owner'})
+        with s.connect() as db:old_token=db.execute('SELECT token FROM sessions').fetchone()['token']
+        self.assertEqual(self.call('session/end',{}),{'ok':True})
+        with self.assertRaises(urllib.error.HTTPError) as err:self.call('state')
+        self.assertEqual(err.exception.code,401)
+        request=urllib.request.Request(self.base+'state',headers={'Cookie':f'veracity_session={old_token}'})
+        with self.assertRaises(urllib.error.HTTPError) as err:urllib.request.urlopen(request,timeout=5)
+        self.assertEqual(err.exception.code,401)
+        self.assertEqual(self.call('session/end',{}),{'ok':True})
+        self.call('session',{'role':'staff'})
+        self.assertEqual(self.call('state')['user']['role'],'staff')
+    def test_reentering_replaces_the_previous_session(self):
+        self.call('session',{'role':'manager'})
+        self.call('session',{'role':'staff'})
+        with s.connect() as db:self.assertEqual(db.execute('SELECT COUNT(*) FROM sessions').fetchone()[0],1)
+        self.assertEqual(self.call('state')['user']['role'],'staff')
     def test_session_permissions_and_full_journey(self):
         with self.assertRaises(urllib.error.HTTPError) as err:self.call('state')
         self.assertEqual(err.exception.code,401)
