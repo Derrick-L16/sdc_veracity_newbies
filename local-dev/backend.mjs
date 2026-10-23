@@ -1,9 +1,17 @@
 import path from 'node:path'
+import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { root, python, port, freePort, buildApi, runNode, fail } from './common.mjs'
 import { prepareNativeBinaries } from './native.mjs'
 
 try {
+  // Optional, Git-ignored local secrets (e.g. RUNPOD_API_KEY). Variables already
+  // set in the terminal win. Replit uses Secrets instead and never sees this file.
+  const localEnv = path.join(root, '.env.local')
+  if (existsSync(localEnv)) {
+    process.loadEnvFile(localEnv)
+    console.log('[local-dev] Loaded settings from .env.local')
+  }
   const apiPort = port(process.env.LOCAL_API_PORT, 8000, 'LOCAL_API_PORT')
   const webPort = port(process.env.LOCAL_WEB_PORT, 3000, 'LOCAL_WEB_PORT')
   const vitePort = port(process.env.LOCAL_VITE_PORT, 5173, 'LOCAL_VITE_PORT')

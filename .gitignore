@@ -54,3 +54,6 @@ Thumbs.db
 __pycache__/
 /generated-artifacts/
 /.veracity-local/
+
+# Local secrets for local-dev/backend.mjs (never commit)
+.env.local

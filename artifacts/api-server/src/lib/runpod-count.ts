@@ -10,9 +10,9 @@ export function runpodConfigured() {
 
 // Overridable only so tests can stand in a fake RunPod.
 const API = process.env.RUNPOD_API_BASE || "https://api.runpod.ai/v2";
-const DEADLINE_MS = 90_000; // Allows for a cold start of the worker.
+const DEADLINE_MS = 150_000; // Allows for a cold start of a GPU worker loading the model.
 
-interface Job { id?: string; status?: string; output?: CountResult & { error?: string }; error?: string }
+interface Job { id?: string; status?: string; output?: CountResult & { model?: string; error?: string }; error?: string }
 
 async function call(path: string, init?: RequestInit): Promise<Job> {
   const response = await fetch(`${API}/${process.env.RUNPOD_ENDPOINT_ID}/${path}`, {
@@ -26,9 +26,11 @@ async function call(path: string, init?: RequestInit): Promise<Job> {
   return await response.json() as Job;
 }
 
-export async function countOnRunpod(imageBase64: string, exemplar: Box): Promise<CountResult> {
+// `label` (the product name) lets the GPU worker's detector find every item of
+// that kind, not only ones that look exactly like the example.
+export async function countOnRunpod(imageBase64: string, exemplar: Box, label: string): Promise<CountResult & { model?: string }> {
   const started = Date.now();
-  let job = await call("runsync", { method: "POST", body: JSON.stringify({ input: { image: imageBase64, exemplar } }) });
+  let job = await call("runsync", { method: "POST", body: JSON.stringify({ input: { image: imageBase64, exemplar, label } }) });
   // runsync returns early while a cold worker is still queued; poll until done.
   while (job.id && (job.status === "IN_QUEUE" || job.status === "IN_PROGRESS")) {
     if (Date.now() - started > DEADLINE_MS) throw new Error("RunPod took too long. Retry in a moment.");

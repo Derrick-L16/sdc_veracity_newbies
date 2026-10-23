@@ -26,7 +26,8 @@ router.post("/vision/count", async (req, res): Promise<void> => {
     res.status(503).json({ error: "Inventory backend unavailable. Please retry." }); return;
   }
 
-  const { image, exemplar } = (req.body ?? {}) as { image?: unknown; exemplar?: Partial<Box> };
+  const { image, exemplar, label } = (req.body ?? {}) as { image?: unknown; exemplar?: Partial<Box>; label?: unknown };
+  const productName = typeof label === "string" ? label.trim().slice(0, 80) : "";
   const base64 = typeof image === "string" ? image.replace(/^data:image\/(jpeg|png);base64,/, "") : "";
   const bytes = Buffer.from(base64, "base64");
   if (!bytes.length) { res.status(400).json({ error: "Choose a JPG or PNG photo." }); return; }
@@ -36,7 +37,9 @@ router.post("/vision/count", async (req, res): Promise<void> => {
 
   const provider = runpodConfigured() ? "runpod" : "built-in";
   try {
-    const result = provider === "runpod" ? await countOnRunpod(base64, box) : await countPhotoObjects(bytes, box);
+    const result = provider === "runpod"
+      ? await countOnRunpod(base64, box, productName)
+      : { ...await countPhotoObjects(bytes, box), model: "template matching" };
     res.json({ ...result, provider });
   } catch (error) {
     if (error instanceof PhotoCountError) { res.status(422).json({ error: error.message }); return; }
