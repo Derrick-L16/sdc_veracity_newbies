@@ -12,5 +12,6 @@ RUN python -c "from transformers import Owlv2Processor, Owlv2ForObjectDetection 
 Owlv2Processor.from_pretrained('google/owlv2-base-patch16-ensemble'); \
 M.from_pretrained('google/owlv2-base-patch16-ensemble')"
 
-COPY count_objects.py owl_count.py runpod_handler.py ./
+COPY count_objects.py owl_count.py runpod_handler.py smoke_test.py ./
+RUN python smoke_test.py
 CMD ["python", "-u", "runpod_handler.py"]

@@ -1,3 +1,5 @@
 numpy>=1.26
 opencv-python-headless>=4.9
 pillow>=10
+# Required by the OWLv2 image processor (transformers).
+scipy>=1.11
