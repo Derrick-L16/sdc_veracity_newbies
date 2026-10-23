@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { CheckCircle2, ChevronDown, CircleMinus, CirclePlus, FileText, Loader2, Minus, Paperclip, Plus, Send, X } from 'lucide-react'
+import { Camera, CheckCircle2, ChevronDown, CircleMinus, CirclePlus, FileText, Loader2, Minus, Paperclip, Plus, Send, X } from 'lucide-react'
 import { Link, useLocation } from 'wouter'
 import { toast } from 'sonner'
 import { useApp, useUnsavedWork } from '@/components/app/app-provider'
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CaseAttachments } from '@/components/veracity/case-attachments'
 import { NoDifferenceBadge } from '@/components/veracity/badges'
+import { PhotoCountDialog } from '@/components/veracity/photo-count-dialog'
 import { Card, ErrorNotice, PageHeader, StatTile } from '@/components/veracity/primitives'
 import { formatSigned } from '@/lib/format'
 import type { StockSummaryItem } from '@/lib/stock'
@@ -41,6 +42,7 @@ export function CountView() {
   const [updatedProductId, setUpdatedProductId] = useState('')
   const [productFile, setProductFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState('')
+  const [photoOpen, setPhotoOpen] = useState(false)
   const actionRef = useRef<HTMLButtonElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const ids = { product: useId(), counted: useId(), note: useId(), name: useId(), recorded: useId(), cost: useId(), newNote: useId() }
@@ -284,6 +286,21 @@ export function CountView() {
           <Field label={countEntryMode === 'total' ? 'Counted quantity' : 'Adjustment (use +5 or -5)'} id={ids.counted} error={countedError ? countedErrorMessage : ''} errorId={`${ids.counted}-error`}>
             <Input id={ids.counted} type={countEntryMode === 'adjustment' ? 'text' : 'number'} inputMode={countEntryMode === 'adjustment' ? 'decimal' : 'numeric'} min={countEntryMode === 'adjustment' && product ? -product.recorded : 0} max={countEntryMode === 'adjustment' && product ? 1_000_000_000 - product.recorded : 1_000_000_000} step={1} value={counted} onChange={(e) => setCounted(e.target.value)} aria-invalid={countedError} aria-describedby={countedError ? `${ids.counted}-error` : undefined} className="num h-14 rounded-[12px] border-line bg-elevated px-4 text-h2 font-semibold text-white" placeholder={countEntryMode === 'adjustment' ? '+5 or -5' : '0'} />
           </Field>
+          <Button type="button" variant="secondary" className="min-h-11 self-start" disabled={!product || !canWrite} title={!product ? 'Choose a product first' : !canWrite ? 'Permission required: Staff or Manager' : undefined} onClick={() => setPhotoOpen(true)} data-testid="button-count-from-photo">
+            <Camera aria-hidden="true" /> Count from photo
+          </Button>
+          {product && (
+            <PhotoCountDialog
+              open={photoOpen}
+              onOpenChange={setPhotoOpen}
+              productName={product.name}
+              onUse={(count, photoNote) => {
+                // The photo gives a total, so switch out of adjustment mode.
+                setCountEntryMode('total'); setCounted(String(count)); setSubmitted(false)
+                setNote((current) => current.trim() ? `${current.trim()}\n${photoNote}` : photoNote)
+              }}
+            />
+          )}
           {countEntryMode === 'adjustment' && product && enteredCount !== null && Number.isInteger(enteredCount) && countedNum !== null && (
             <p role="status" aria-live="polite" data-testid="adjustment-result" className="rounded-[12px] border border-line bg-elevated px-4 py-3 text-body-sm text-fg-secondary">
               New counted quantity: <span className="num font-semibold text-fg">{countedNum}</span>
