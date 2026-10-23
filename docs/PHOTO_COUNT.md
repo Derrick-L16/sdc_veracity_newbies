@@ -31,7 +31,12 @@ download is needed.
 | Where | What runs |
 | --- | --- |
 | Default: VS Code (`pnpm local`) and Replit | Built-in counter in the API server (`artifacts/api-server/src/lib/photo-count.ts`, Node + `sharp`). No setup, no key, no cost. |
-| When RunPod is configured | The API sends the photo to a RunPod Serverless worker (`artifacts/api-server/detector/`) and shows its result. |
+| When RunPod is configured | The API sends the photo and product name to a RunPod Serverless **GPU** worker (`artifacts/api-server/detector/`). It runs **OWLv2**, a pretrained open-vocabulary detector, which finds every item matching the product name (so different flavours/colours count too). The staff example sets the expected size, shape and confidence. |
+
+Measured on two test photos: the built-in counter got 39/39 snack packs but only
+3 of 13 mixed-flavour cans; OWLv2 got 39/39 packs and 12 of 13 cans (one can
+mostly hidden by a hand was missed, and one fridge-door shelf was counted).
+Staff still review every result.
 
 Route: `POST /api/vision/count` (Staff or Manager session, trusted origin).
 Photos are downsized in the browser and are **not stored**; attach a photo as case
@@ -40,9 +45,11 @@ evidence separately if it should be kept.
 ## Optional: run counting on RunPod
 
 You need a RunPod account (hackathon credits are applied to it). Serverless is
-billed only while a request is being processed; with **Min workers = 0** an idle
-endpoint costs nothing. A **CPU** worker is enough; a GPU is not needed. Each
-photo takes about a second.
+billed only while a request is being processed; with **Active workers = 0** an
+idle endpoint costs nothing. Use a **GPU** endpoint: the image contains PyTorch
+and the OWLv2 model (about 8 GB). The CPU/GPU choice is made when the endpoint is
+created and cannot be changed later, so create a new endpoint to switch. A cold
+GPU worker can take up to about a minute; warm requests take about a second.
 
 ### 1. Create the endpoint
 
@@ -56,7 +63,9 @@ RunPod console → **Serverless** → **New Endpoint**, then either:
   `docker build --platform linux/amd64 -t <dockerhub-user>/veracity-counter:latest .`,
   push it, and enter that image name.
 
-Settings: CPU worker, **Min workers 0**, Max workers 1, idle timeout ~5 s.
+Settings: **GPU** worker (16 GB or 24 GB tier; tick two or three GPU types for
+availability), **Active workers 0**, Max workers 1, idle timeout ~5 s,
+container disk **20 GB** or more.
 
 ### 2. Copy two values
 

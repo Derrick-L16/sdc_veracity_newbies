@@ -7,10 +7,14 @@ import { readJson } from '@/lib/read-json'
 import { cn } from '@/lib/utils'
 
 interface Box { x: number; y: number; width: number; height: number }
-interface CountResult { count: number; boxes: (Box & { score: number })[]; imageWidth: number; imageHeight: number; provider: string }
+interface CountResult { count: number; boxes: (Box & { score: number })[]; imageWidth: number; imageHeight: number; provider: string; model?: string }
 interface Photo { dataUrl: string; width: number; height: number }
 
 const MAX_SIDE = 1600 // Keeps the upload small; plenty of detail for counting.
+// Share of the photo an example box may cover. One of several items cannot fill
+// half the photo; a box that large almost always frames the whole counting area.
+const TOO_BIG = 0.5
+const LOOKS_BIG = 0.2
 
 // Downscale in the browser (also applies the camera's EXIF rotation) so the
 // request stays well under the API's JSON size limit.
@@ -90,7 +94,7 @@ export function PhotoCountDialog({ open, onOpenChange, productName, onUse }: {
     try {
       const response = await fetch('/api/vision/count', {
         method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: photo.dataUrl, exemplar: example }),
+        body: JSON.stringify({ image: photo.dataUrl, exemplar: example, label: productName }),
       })
       const data = await readJson<CountResult & { error?: string }>(response)
       if (!response.ok) throw new Error(data.error || 'Photo counting failed.')
@@ -106,6 +110,7 @@ export function PhotoCountDialog({ open, onOpenChange, productName, onUse }: {
     if (result) setConfirmed(String(result.count - next.size))
   }
 
+  const exampleShare = photo && example ? (example.width * example.height) / (photo.width * photo.height) : 0
   const detected = result ? result.count - excluded.size : 0
   const confirmedNum = confirmed === '' ? NaN : Number(confirmed)
   const confirmedValid = Number.isInteger(confirmedNum) && confirmedNum >= 0 && confirmedNum <= 1_000_000_000
@@ -122,7 +127,7 @@ export function PhotoCountDialog({ open, onOpenChange, productName, onUse }: {
         <DialogHeader className="gap-2">
           <DialogTitle className="text-h2 font-semibold">Count from photo</DialogTitle>
           <DialogDescription className="text-body-sm text-fg-secondary">
-            {productName}. Take or upload one photo of the counting area, then drag a box around <strong className="text-fg">one</strong> item so the AI knows what to count.
+            {productName}. Take or upload one photo of the counting area, then drag a box around <strong className="text-fg">just one</strong> item (for example, one pack, not the whole box) so the AI knows what to count.
           </DialogDescription>
         </DialogHeader>
 
@@ -154,7 +159,11 @@ export function PhotoCountDialog({ open, onOpenChange, productName, onUse }: {
         )}
 
         {photo && !result && (
-          <p className="text-body-sm text-fg-secondary">{example ? 'Example selected. Redraw to change it.' : 'Drag a box around one whole item in the photo.'}</p>
+          exampleShare > TOO_BIG
+            ? <p role="alert" className="text-body-sm font-medium text-danger" data-testid="text-photo-count-box-too-big">This box covers most of the photo. Redraw it around just one item (for example, one pack), not the whole counting area.</p>
+            : exampleShare > LOOKS_BIG
+              ? <p role="status" className="text-body-sm font-medium text-warning">This box is large. Make sure it contains exactly one item, not several.</p>
+              : <p className="text-body-sm text-fg-secondary">{example ? 'Example selected. Redraw to change it.' : 'Drag a box around one whole item in the photo, not the whole area.'}</p>
         )}
 
         {result && (
@@ -162,6 +171,14 @@ export function PhotoCountDialog({ open, onOpenChange, productName, onUse }: {
             <p className="text-body font-semibold" data-testid="text-photo-count-result">
               AI detected {result.count} {result.count === 1 ? 'item' : 'items'}. Review and confirm the count.
             </p>
+            <p className="text-caption text-fg-tertiary" data-testid="text-photo-count-model">
+              Counted by {result.provider === 'runpod' ? 'RunPod' : 'the built-in counter'}{result.model ? ` · ${result.model}` : ''}
+            </p>
+            {result.count <= 1 && (
+              <p className="text-body-sm font-medium text-warning" data-testid="text-photo-count-one">
+                Only the example was found. If the box held more than one item, choose <strong>Pick another example</strong> and box a single item.
+              </p>
+            )}
             <p className="text-body-sm text-fg-secondary">
               Tap a box to exclude a wrong detection{excluded.size ? ` (${excluded.size} excluded, ${detected} left)` : ''}. Add any missed items in the number below.
             </p>
@@ -182,8 +199,8 @@ export function PhotoCountDialog({ open, onOpenChange, productName, onUse }: {
           {photo && <Button type="button" variant="secondary" className="min-h-11" disabled={busy} onClick={() => fileInput.current?.click()}>Change photo</Button>}
           {result && <Button type="button" variant="secondary" className="min-h-11" onClick={() => { setResult(null); setExample(null); setExcluded(new Set()) }}>Pick another example</Button>}
           {!result
-            ? <Button type="button" className="min-h-11" disabled={!photo || !example || busy} onClick={() => void analyse()} data-testid="button-photo-count-analyse">
-                {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <ScanSearch aria-hidden="true" />}{busy ? 'Counting…' : 'Count items'}
+            ? <Button type="button" className="min-h-11" disabled={!photo || !example || busy || exampleShare > TOO_BIG} onClick={() => void analyse()} data-testid="button-photo-count-analyse">
+                {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <ScanSearch aria-hidden="true" />}{busy ? 'Counting… (the first count can take a minute)' : 'Count items'}
               </Button>
             : <Button type="button" className="min-h-11" disabled={!confirmedValid || !covers} title={!covers ? 'Confirm the photo covers the whole counting area' : undefined} onClick={use} data-testid="button-photo-count-use">
                 Use this count
