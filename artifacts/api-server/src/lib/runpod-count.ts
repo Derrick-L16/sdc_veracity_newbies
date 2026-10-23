@@ -12,6 +12,20 @@ export function runpodConfigured() {
 const API = process.env.RUNPOD_API_BASE || "https://api.runpod.ai/v2";
 const DEADLINE_MS = 150_000; // Allows for a cold start of a GPU worker loading the model.
 
+// A worker crash comes back as a JSON traceback. Staff see one short line;
+// the full detail stays in `detail` for the server log.
+export class RunpodJobError extends Error {
+  readonly detail?: string;
+  constructor(status: string | undefined, detail?: string) {
+    let reason = "";
+    try { reason = String((JSON.parse(detail ?? "") as { error_message?: string }).error_message ?? ""); }
+    catch { reason = detail ?? ""; }
+    reason = reason.trim().split("\n").find((line) => line.trim())?.trim().slice(0, 160) ?? "";
+    super(`the worker ${status === "FAILED" || !status ? "failed" : `ended as ${status}`}${reason ? ` (${reason})` : ""}. Check the endpoint's Logs in RunPod.`);
+    this.detail = detail;
+  }
+}
+
 interface Job { id?: string; status?: string; output?: CountResult & { model?: string; error?: string }; error?: string }
 
 async function call(path: string, init?: RequestInit): Promise<Job> {
@@ -37,7 +51,7 @@ export async function countOnRunpod(imageBase64: string, exemplar: Box, label: s
     await new Promise((resolve) => setTimeout(resolve, 1500));
     job = await call(`status/${job.id}`);
   }
-  if (job.status !== "COMPLETED" || !job.output) throw new Error(job.error || `RunPod job ${job.status ?? "failed"}.`);
+  if (job.status !== "COMPLETED" || !job.output) throw new RunpodJobError(job.status, job.error);
   if (job.output.error) throw new PhotoCountError(job.output.error);
   return job.output;
 }

@@ -43,7 +43,7 @@ router.post("/vision/count", async (req, res): Promise<void> => {
     res.json({ ...result, provider });
   } catch (error) {
     if (error instanceof PhotoCountError) { res.status(422).json({ error: error.message }); return; }
-    req.log.error({ err: error, provider }, "Photo count failed");
+    req.log.error({ err: error, provider, detail: (error as { detail?: string }).detail }, "Photo count failed");
     res.status(502).json({ error: provider === "runpod" ? `Photo counting service failed: ${(error as Error).message}` : "Photo counting failed. Retry or enter the count manually." });
   }
 });
