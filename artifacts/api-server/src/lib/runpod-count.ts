@@ -1,0 +1,41 @@
+import type { Box, CountResult } from "./photo-count";
+import { PhotoCountError } from "./photo-count";
+
+// Optional: when both are set (Replit Secrets or local environment), photo
+// counting runs on the RunPod serverless worker in detector/ instead of in
+// this process. Without them the built-in counter is used.
+export function runpodConfigured() {
+  return Boolean(process.env.RUNPOD_API_KEY && process.env.RUNPOD_ENDPOINT_ID);
+}
+
+// Overridable only so tests can stand in a fake RunPod.
+const API = process.env.RUNPOD_API_BASE || "https://api.runpod.ai/v2";
+const DEADLINE_MS = 90_000; // Allows for a cold start of the worker.
+
+interface Job { id?: string; status?: string; output?: CountResult & { error?: string }; error?: string }
+
+async function call(path: string, init?: RequestInit): Promise<Job> {
+  const response = await fetch(`${API}/${process.env.RUNPOD_ENDPOINT_ID}/${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${process.env.RUNPOD_API_KEY}`, "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(DEADLINE_MS),
+  });
+  if (response.status === 401 || response.status === 403) throw new Error("RunPod rejected the API key. Check RUNPOD_API_KEY.");
+  if (response.status === 404) throw new Error("RunPod endpoint not found. Check RUNPOD_ENDPOINT_ID.");
+  if (!response.ok) throw new Error(`RunPod request failed (HTTP ${response.status}).`);
+  return await response.json() as Job;
+}
+
+export async function countOnRunpod(imageBase64: string, exemplar: Box): Promise<CountResult> {
+  const started = Date.now();
+  let job = await call("runsync", { method: "POST", body: JSON.stringify({ input: { image: imageBase64, exemplar } }) });
+  // runsync returns early while a cold worker is still queued; poll until done.
+  while (job.id && (job.status === "IN_QUEUE" || job.status === "IN_PROGRESS")) {
+    if (Date.now() - started > DEADLINE_MS) throw new Error("RunPod took too long. Retry in a moment.");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    job = await call(`status/${job.id}`);
+  }
+  if (job.status !== "COMPLETED" || !job.output) throw new Error(job.error || `RunPod job ${job.status ?? "failed"}.`);
+  if (job.output.error) throw new PhotoCountError(job.output.error);
+  return job.output;
+}
